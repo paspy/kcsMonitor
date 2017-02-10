@@ -250,3 +250,6 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+kcsMonitor/data/ApiStart2Module/[Ee]xport/
+*.json
+*.swf
