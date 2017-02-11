@@ -175,7 +175,7 @@ namespace ElectronicObserver.Data {
 
             //改装関連のデータ設定
             foreach (var ship in MasterShips) {
-                int remodelID = ship.Value.RemodelAfterShipID;
+                var remodelID = ship.Value.RemodelAfterShipID;
                 if (remodelID != 0) {
                     MasterShips[remodelID].RemodelBeforeShipID = ship.Key;
                 }

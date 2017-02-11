@@ -2,6 +2,9 @@
 
 namespace Paspy.kcsMonitor.KCData.ExportData {
     public class Ship {
+        public Ship() {
+            ShipIllustrateBase64 = new List<string>();
+        }
         public int ID { set; get; }
         public int AlbumNo { set; get; }
         public string Name { set; get; }

@@ -17,7 +17,9 @@ using ElectronicObserver.Data;
 
 namespace Paspy.kcsMonitor.Modules {
     class ApiStart2Module : BaseModule {
-
+        #region DEBUG_MODE
+        private bool m_offlineDebug = false;
+        #endregion
         private string m_loginId;
         private string m_password;
         private string m_token;
@@ -42,7 +44,12 @@ namespace Paspy.kcsMonitor.Modules {
             try {
                 Utils.Log("CheckAPIStart2 Start.", "ApiStart2Module");
                 var tt = new TimeTracker("start");
-                latestJsonStr = UpdateApiStart2Json().Result; // return valid json or error code
+                if (!m_offlineDebug)
+                    latestJsonStr = UpdateApiStart2Json().Result; // return valid json or error code
+                else {
+                    m_server = "203.104.209.55";
+                    latestJsonStr = File.ReadAllText(Path.Combine(m_exportPath, "api_start2.debug.json"));
+                }
                 tt.AddLap("end");
                 if (latestJsonStr != null && latestJsonStr.Length > 3) {
                     Utils.Log("Latest api_start2 JSON downloaded. Time elapsed: " + tt.GetLapTimeDiff("start", "end", TimeTracker.TimeFormat.Seconds) + "s.", "ApiStart2Module");
@@ -54,7 +61,7 @@ namespace Paspy.kcsMonitor.Modules {
                         if (!JToken.DeepEquals(oldJson, newJson)) {
                             Utils.Log("Found newer api_start2, achieve and update to latest version.", "ApiStart2Module");
                             var utcDate = DateTime.UtcNow.ToString("yyyyMMdd");
-                            var newFilePath = Path.Combine(m_exportPath, string.Format(".api_start2.{0}.json", utcDate));
+                            var newFilePath = Path.Combine(m_exportPath, string.Format("api_start2.{0}.json", utcDate));
                             ExportNewContents(oldJson, newJson, utcDate);
                             File.Copy(existingJsonFile, newFilePath, true);
                             File.WriteAllText(existingJsonFile, latestJsonStr, new UTF8Encoding(false));
@@ -73,7 +80,7 @@ namespace Paspy.kcsMonitor.Modules {
                 Utils.Log(ex.Message, "ApiStart2Module");
             }
             m_forceUpdateToken = !(latestJsonStr != null && latestJsonStr.Length > 3);
-            m_checkingTimer.Change((m_forceUpdateToken&&!latestJsonStr.Equals("200")) ? 3000 : m_timeInterval, Timeout.Infinite);
+            m_checkingTimer.Change((m_forceUpdateToken && !latestJsonStr.Equals("200")) ? 3000 : m_timeInterval, Timeout.Infinite);
             IsModuleRunning = false;
         }
 
@@ -90,34 +97,48 @@ namespace Paspy.kcsMonitor.Modules {
             Directory.CreateDirectory(newShipPath);
 
             var taskLst = new List<Task>();
-            foreach (var shipTypes in m_exportedShips.Values) {
-                foreach (var ship in shipTypes) {
-                    taskLst.Add(
-                        Task.Run(async () => {
-                            var swfPath = Path.Combine(ship.IsAbyssal ? newAbyssalPath : ship.IsLimitedIllustration ? newLimitedPath : newShipPath, string.Format("{0}_{1}", ship.ID, ship.Name));
-                            var swfFile = Path.Combine(swfPath, string.Format("{0}_{1}{2}", ship.ID, ship.Name, Path.GetExtension(ship.IllustrationSwfLink)));
-                            Directory.CreateDirectory(swfPath);
-                            ship.IllustrationSwfLink = await DownloadAndConvertToBase64Async(ship.IllustrationSwfLink, swfFile);
-                        }).ContinueWith((p) => {
-                            Utils.Log(ship.Name + " swf has downloaded.", "ApiStart2Module");
-                        }, TaskContinuationOptions.OnlyOnRanToCompletion)
-                    );
+            try {
+                foreach (var shipTypes in m_exportedShips.Values) {
+                    foreach (var ship in shipTypes) {
+                        taskLst.Add(
+                            Task.Run(async () => {
+                                var swfPath = Path.Combine(ship.IsAbyssal ? newAbyssalPath : ship.IsLimitedIllustration ? newLimitedPath : newShipPath, string.Format("{0}_{1}", ship.ID, ship.Name));
+                                var swfFile = Path.Combine(swfPath, string.Format("{0}_{1}{2}", ship.ID, ship.Name, Path.GetExtension(ship.IllustrationSwfLink)));
+                                Directory.CreateDirectory(swfPath);
+                                ship.ShipIllustrateBase64 = (await DownloadAndConvertToBase64ImagesAsync(ship.IllustrationSwfLink, swfFile)).Select(b => b.Value).ToList();
+                            }).ContinueWith((p) => {
+                                Utils.Log(ship.Name + " swf has downloaded.", "ApiStart2Module");
+                            }, TaskContinuationOptions.OnlyOnRanToCompletion)
+                        );
+                        //if (m_offlineDebug) break;
+                    }
                 }
+            } catch (Exception e) {
+                Console.WriteLine(e);
+                throw;
             }
-            foreach (var item in m_exportedSlotItems) {
-                if (item.IsAbyssal) continue;
-                foreach (var link in item.ItemIllustrateLinks) {
-                    taskLst.Add(
-                        Task.Run(async () => {
-                            var fnNoExt = Path.GetFileNameWithoutExtension(link);
-                            var file = Path.Combine(newEquipPath, string.Format("{0}_{1}{2}", fnNoExt, new Uri(link).Segments[5].TrimEnd('/'), Path.GetExtension(link)));
-                            item.ItemIllustrateBase64[Path.GetFileName(file)] = await DownloadAndConvertToBase64Async(link, file);
-                        }).ContinueWith((p) => {
-                            Utils.Log(item.Name + " image has downloaded.", "ApiStart2Module");
-                        }, TaskContinuationOptions.OnlyOnRanToCompletion)
-                    );
+
+            try {
+                foreach (var item in m_exportedSlotItems) {
+                    if (item.IsAbyssal) continue;
+                    foreach (var link in item.ItemIllustrateLinks) {
+                        taskLst.Add(
+                            Task.Run(async () => {
+                                var fnNoExt = Path.GetFileNameWithoutExtension(link);
+                                var file = Path.Combine(newEquipPath, string.Format("{0}_{1}{2}", fnNoExt, new Uri(link).Segments[5].TrimEnd('/'), Path.GetExtension(link)));
+                                item.ItemIllustrateBase64 = await DownloadAndConvertToBase64ImagesAsync(link, file, true);
+                            }).ContinueWith((p) => {
+                                Utils.Log(item.Name + " image has downloaded.", "ApiStart2Module");
+                            }, TaskContinuationOptions.OnlyOnRanToCompletion)
+                        );
+                    }
                 }
+            } catch (Exception e) {
+                Console.WriteLine(e);
+                throw;
             }
+
+
             Task.WhenAll(taskLst).Wait();
             foreach (var shipType in m_exportedShips) {
                 File.WriteAllText(Path.Combine(jsonPath, string.Format("new_{0}.json", shipType.Key)), JsonConvert.SerializeObject(shipType.Value, Formatting.Indented));
@@ -152,9 +173,10 @@ namespace Paspy.kcsMonitor.Modules {
             }
         }
 
-        private async Task<string> DownloadAndConvertToBase64Async(string address, string filenameWithPath = "", bool exportImages = false) {
+        private async Task<Dictionary<string, string>> DownloadAndConvertToBase64ImagesAsync(string address, string filenameWithPath, bool saveToLocal = false) {
             CancellationTokenSource source = new CancellationTokenSource();
             CancellationToken token = source.Token;
+            Dictionary<string, string> output = new Dictionary<string, string>();
             try {
                 using (var httpClient = new HttpClient(new RetryHandler(new HttpClientHandler()))) {
                     using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(address))) {
@@ -162,27 +184,57 @@ namespace Paspy.kcsMonitor.Modules {
                         if (response == null) source.Cancel();
                         MemoryStream contentStream = await response.Content.ReadAsStreamAsync() as MemoryStream;
                         var b = contentStream.ToArray();
-                        if (filenameWithPath.Length > 0)
+
+                        if (Path.GetExtension(filenameWithPath).Equals(".swf")) {
                             File.WriteAllBytes(filenameWithPath, b);
-                        return Convert.ToBase64String(b);
+                            output = GetImagesFromFFDEC(filenameWithPath);
+                            if (!saveToLocal) File.Delete(filenameWithPath);
+                        } else {
+                            output[Path.GetFileName(filenameWithPath)] = Convert.ToBase64String(b);
+                            if (saveToLocal)
+                                File.WriteAllBytes(filenameWithPath, b);
+                        }
+                        return output;
                     }
                 }
-            } catch (AggregateException ae) {
-                foreach (Exception e in ae.InnerExceptions) {
-                    if (e is TaskCanceledException)
-                        Utils.Log(e.Message + " " + address, "ApiStart2Module");
-                    else
-                        Utils.Log("Exception: " + e.GetType().Name, "ApiStart2Module");
-                }
+            } catch (Exception e) {
+                Utils.Log("Exception: " + e.GetType().Name, "ApiStart2Module");
             } finally {
                 source.Dispose();
             }
             return null;
         }
 
-        //private async Task<Dictionary<string, string>> GetImagesFromFFDEC(string swfPath) {
-
-        //}
+        private Dictionary<string, string> GetImagesFromFFDEC(string swfPath) {
+            string exec = m_isWindows ? @"java" : @"java";
+            string fullPathSwf = Path.Combine(Directory.GetCurrentDirectory(), swfPath);
+            var base64Images = new Dictionary<string, string>();
+            using (Process ffdec = new Process {
+                StartInfo = new ProcessStartInfo(exec) {
+                    RedirectStandardOutput = false,
+                    RedirectStandardError = false,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Path.Combine(Directory.GetCurrentDirectory(), "data/ApiStart2Module/ffdec/"),
+                    Arguments = string.Format("-jar ffdec.jar -export image \"{0}\" \"{1}\"", Path.GetDirectoryName(fullPathSwf), fullPathSwf)
+                }
+            }) {
+                ffdec.Start();
+                Utils.Log("ffdec begins extract images from " + Path.GetFileName(swfPath), "ApiStart2Module");
+                if (ffdec.WaitForExit(10000)) {
+                    var extractedFiles = Directory.GetFiles(Path.GetDirectoryName(fullPathSwf));
+                    foreach (var image in extractedFiles) {
+                        if (Path.GetExtension(image).Equals(".swf")) continue;
+                        string name = Path.GetFileName(image);
+                        base64Images[name] = (Convert.ToBase64String(File.ReadAllBytes(image)));
+                    }
+                } else {
+                    Utils.Log("ffdec may running into deadlock. " + Path.GetFileName(swfPath), "ApiStart2Module");
+                }
+                base64Images.OrderByDescending(item => item.Value.Length);
+                return base64Images;
+            }
+        }
 
         private void GetTokenFromKcsAuthPy(bool forceUpdate = false) {
             string jsonPath = Path.Combine(MODULE_PATH, "kcsAuthPy", m_loginId + ".json");

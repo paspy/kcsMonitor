@@ -18,7 +18,7 @@ namespace ElectronicObserver.Data {
         /// 艦船ID
         /// </summary>
         public int ShipID {
-            get { return (int)RawData.api_id; }
+            get { return int.Parse((string)RawData.api_id); }
         }
 
         /// <summary>
@@ -26,8 +26,12 @@ namespace ElectronicObserver.Data {
         /// </summary>
         public int AlbumNo {
             get {
-                try { return (int)RawData.api_sortno; } catch (Exception) { return 0; }
-                //return !RawData.api_sortno() ? 0 : (int)RawData.api_sortno;
+                try {
+                    return RawData.api_sortno != null ? int.Parse((string)RawData.api_sortno) : 0;
+                } catch (Exception) {
+                    return 0;
+                }
+                //return !RawData.api_sortno() ? 0 : (string)RawData.api_sortno;
             }
         }
 
@@ -49,7 +53,7 @@ namespace ElectronicObserver.Data {
         /// 艦種
         /// </summary>
         public int ShipType {
-            get { return (int)RawData.api_stype; }
+            get { return int.Parse((string)RawData.api_stype); }
         }
 
 
@@ -57,9 +61,13 @@ namespace ElectronicObserver.Data {
         /// 改装Lv.
         /// </summary>
         public int RemodelAfterLevel {
-            //get { return !RawData.api_afterlv() ? 0 : (int)RawData.api_afterlv; }
+            //get { return !RawData.api_afterlv() ? 0 : (string)RawData.api_afterlv; }
             get {
-                try { return (int)RawData.api_afterlv; } catch (Exception) { return 0; }
+                try {
+                    return RawData.api_afterlv != null ? int.Parse((string)RawData.api_afterlv) : 0;
+                } catch (Exception) {
+                    return 0;
+                }
             }
         }
 
@@ -69,7 +77,13 @@ namespace ElectronicObserver.Data {
         /// </summary>
         public int RemodelAfterShipID {
             //get { return !RawData.api_aftershipid() ? 0 : int.Parse((string)RawData.api_aftershipid); }
-            get { try { return int.Parse((string)RawData.api_aftershipid); } catch (Exception) { return 0; } }
+            get {
+                try {
+                    return RawData.api_aftershipid != null ? int.Parse((string)RawData.api_aftershipid) : 0;
+                } catch (Exception) {
+                    return 0;
+                }
+            }
         }
 
         /// <summary>
@@ -98,16 +112,16 @@ namespace ElectronicObserver.Data {
         /// 改装に必要な弾薬
         /// </summary>
         public int RemodelAmmo {
-            //get { return !RawData.api_afterbull() ? 0 : (int)RawData.api_afterbull; }
-            get { try { return (int)RawData.api_afterbull; } catch (Exception) { return 0; } }
+            //get { return !RawData.api_afterbull() ? 0 : (string)RawData.api_afterbull; }
+            get { try { return RawData.api_afterbull != null ? int.Parse((string)RawData.api_afterbull) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
         /// 改装に必要な鋼材
         /// </summary>
         public int RemodelSteel {
-            //get { return !RawData.api_afterfuel() ? 0 : (int)RawData.api_afterfuel; }
-            get { try { return (int)RawData.api_afterfuel; } catch (Exception) { return 0; } }
+            //get { return !RawData.api_afterfuel() ? 0 : (string)RawData.api_afterfuel; }
+            get { try { return RawData.api_afterfuel != null ? int.Parse((string)RawData.api_afterfuel) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -129,7 +143,7 @@ namespace ElectronicObserver.Data {
         public int HPMin {
             //get {
             //    if (RawData.api_taik()) {
-            //        return (int)RawData.api_taik[0];
+            //        return (string)RawData.api_taik[0];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -138,7 +152,13 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_taik[0]; } catch (Exception) { return 0; } }
+            get {
+                try {
+                    return RawData.api_taik != null ? int.Parse((string)RawData.api_taik[0]) : 0;
+                } catch (Exception) {
+                    return 0;
+                }
+            }
         }
 
         /// <summary>
@@ -147,7 +167,7 @@ namespace ElectronicObserver.Data {
         public int HPMax {
             //get {
             //    if (RawData.api_taik()) {
-            //        return (int)RawData.api_taik[1];
+            //        return (string)RawData.api_taik[1];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -156,7 +176,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_taik[1]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_taik != null ? int.Parse((string)RawData.api_taik[1]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -165,7 +185,7 @@ namespace ElectronicObserver.Data {
         public int ArmorMin {
             //get {
             //    if (RawData.api_souk()) {
-            //        return (int)RawData.api_souk[0];
+            //        return (string)RawData.api_souk[0];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -174,7 +194,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_souk[0]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_souk != null ? int.Parse((string)RawData.api_souk[0]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -183,7 +203,7 @@ namespace ElectronicObserver.Data {
         public int ArmorMax {
             //get {
             //    if (RawData.api_souk()) {
-            //        return (int)RawData.api_souk[1];
+            //        return (string)RawData.api_souk[1];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -192,7 +212,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_souk[1]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_souk != null ? int.Parse((string)RawData.api_souk[1]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -201,7 +221,7 @@ namespace ElectronicObserver.Data {
         public int FirepowerMin {
             //get {
             //    if (RawData.api_houg()) {
-            //        return (int)RawData.api_houg[0];
+            //        return (string)RawData.api_houg[0];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -210,7 +230,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_houg[0]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_houg != null ? int.Parse((string)RawData.api_houg[0]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -219,7 +239,7 @@ namespace ElectronicObserver.Data {
         public int FirepowerMax {
             //get {
             //    if (RawData.api_houg()) {
-            //        return (int)RawData.api_houg[1];
+            //        return (string)RawData.api_houg[1];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -228,7 +248,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_houg[1]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_houg != null ? int.Parse((string)RawData.api_houg[1]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -237,7 +257,7 @@ namespace ElectronicObserver.Data {
         public int TorpedoMin {
             //get {
             //    if (RawData.api_raig()) {
-            //        return (int)RawData.api_raig[0];
+            //        return (string)RawData.api_raig[0];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -246,7 +266,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_raig[0]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_raig != null ? int.Parse((string)RawData.api_raig[0]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -255,7 +275,7 @@ namespace ElectronicObserver.Data {
         public int TorpedoMax {
             //get {
             //    if (RawData.api_raig()) {
-            //        return (int)RawData.api_raig[1];
+            //        return (string)RawData.api_raig[1];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -264,7 +284,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_raig[1]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_raig != null ? int.Parse((string)RawData.api_raig[1]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -273,7 +293,7 @@ namespace ElectronicObserver.Data {
         public int AAMin {
             //get {
             //    if (RawData.api_tyku()) {
-            //        return (int)RawData.api_tyku[0];
+            //        return (string)RawData.api_tyku[0];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -282,7 +302,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_tyku[0]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_tyku != null ? int.Parse((string)RawData.api_tyku[0]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -291,7 +311,7 @@ namespace ElectronicObserver.Data {
         public int AAMax {
             //get {
             //    if (RawData.api_tyku()) {
-            //        return (int)RawData.api_tyku[1];
+            //        return (string)RawData.api_tyku[1];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -300,7 +320,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_tyku[1]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_tyku != null ? int.Parse((string)RawData.api_tyku[1]) : 0; } catch (Exception) { return 0; } }
         }
 
 
@@ -350,7 +370,7 @@ namespace ElectronicObserver.Data {
         public int LuckMin {
             //get {
             //    if (RawData.api_luck()) {
-            //        return (int)RawData.api_luck[0];
+            //        return (string)RawData.api_luck[0];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -359,7 +379,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_luck[0]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_luck != null ? int.Parse((string)RawData.api_luck[0]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -368,7 +388,7 @@ namespace ElectronicObserver.Data {
         public int LuckMax {
             //get {
             //    if (RawData.api_luck()) {
-            //        return (int)RawData.api_luck[1];
+            //        return (string)RawData.api_luck[1];
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -377,7 +397,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_luck[1]; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_luck != null ? int.Parse((string)RawData.api_luck[1]) : 0; } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -385,7 +405,7 @@ namespace ElectronicObserver.Data {
         /// 0=陸上基地, 5=低速, 10=高速
         /// </summary>
         public int Speed {
-            get { return (int)RawData.api_soku; }
+            get { return int.Parse((string)RawData.api_soku); }
         }
 
         /// <summary>
@@ -394,7 +414,7 @@ namespace ElectronicObserver.Data {
         public int Range {
             //get {
             //    if (RawData.api_leng()) {
-            //        return (int)RawData.api_leng;
+            //        return (string)RawData.api_leng;
             //    } else {
             //        var p = GetParameterElement();
             //        if (p != null)
@@ -403,7 +423,7 @@ namespace ElectronicObserver.Data {
             //            return 0;
             //    }
             //}
-            get { try { return (int)RawData.api_leng; } catch (Exception) { return 0; } }
+            get { try { return RawData.api_leng != null ? int.Parse((string)RawData.api_leng) : 0; } catch (Exception) { return 0; } }
         }
         #endregion
 
@@ -412,7 +432,7 @@ namespace ElectronicObserver.Data {
         /// 装備スロットの数
         /// </summary>
         public int SlotSize {
-            get { return (int)RawData.api_slot_num; }
+            get { return int.Parse((string)RawData.api_slot_num); }
         }
 
         /// <summary>
@@ -432,13 +452,16 @@ namespace ElectronicObserver.Data {
             //}
             get {
                 try {
-                    return new ReadOnlyCollection<int>(new[] {
-                        (int)RawData.api_maxeq[0],
-                        (int)RawData.api_maxeq[1],
-                        (int)RawData.api_maxeq[2],
-                        (int)RawData.api_maxeq[3],
-                        (int)RawData.api_maxeq[4]
-                    });
+                    if (RawData.api_maxeq != null)
+                        return new ReadOnlyCollection<int>(new[] {
+                            int.Parse((string)RawData.api_maxeq[0]),
+                            int.Parse((string)RawData.api_maxeq[1]),
+                            int.Parse((string)RawData.api_maxeq[2]),
+                            int.Parse((string)RawData.api_maxeq[3]),
+                            int.Parse((string)RawData.api_maxeq[4])
+                        });
+                    else
+                        return new ReadOnlyCollection<int>(new[] { 0, 0, 0, 0, 0 });
                 } catch (Exception) {
                     return new ReadOnlyCollection<int>(new[] { 0, 0, 0, 0, 0 });
                 }
@@ -471,8 +494,8 @@ namespace ElectronicObserver.Data {
         /// 建造時間(分)
         /// </summary>
         public int BuildingTime {
-            //get { return !RawData.api_buildtime() ? 0 : (int)RawData.api_buildtime; }
-            get { try { return (int)RawData.api_buildtime; } catch (Exception) { return 0; } }
+            //get { return !RawData.api_buildtime() ? 0 : (string)RawData.api_buildtime; }
+            get { try { return RawData.api_buildtime != null ? int.Parse((string)RawData.api_buildtime) : 0; } catch (Exception) { return 0; } }
         }
 
 
@@ -496,8 +519,8 @@ namespace ElectronicObserver.Data {
         /// レアリティ
         /// </summary>
         public int Rarity {
-            //get { return !RawData.api_backs() ? 0 : (int)RawData.api_backs; }
-            get { try { return (int)RawData.api_backs; } catch (Exception) { return 0; } }
+            //get { return !RawData.api_backs() ? 0 : (string)RawData.api_backs; }
+            get { try { return int.Parse((string)RawData.api_backs); } catch (Exception) { return 0; } }
         }
 
         /// <summary>
@@ -515,7 +538,7 @@ namespace ElectronicObserver.Data {
             //            return "";
             //    }
             //}
-            get { try { return ((string)RawData.api_getmes).Replace("<br>", "\n"); } catch (Exception) { return ""; } }
+            get { try { return RawData.api_getmes != null ? ((string)RawData.api_getmes).Replace("<br>", "\n") : ""; } catch (Exception) { return ""; } }
         }
 
         /// <summary>
@@ -536,16 +559,16 @@ namespace ElectronicObserver.Data {
         /// 搭載燃料
         /// </summary>
         public int Fuel {
-            //get { return !RawData.api_fuel_max() ? 0 : (int)RawData.api_fuel_max; }
-            get { try { return (int)RawData.api_fuel_max; } catch (Exception) { return 0; } }
+            //get { return !RawData.api_fuel_max() ? 0 : (string)RawData.api_fuel_max; }
+            get { try { return int.Parse((string)RawData.api_fuel_max); } catch (Exception) { return 0; } }
         }
 
         /// <summary>
         /// 搭載弾薬
         /// </summary>
         public int Ammo {
-            //get { return !RawData.api_bull_max() ? 0 : (int)RawData.api_bull_max; }
-            get { try { return (int)RawData.api_bull_max; } catch (Exception) { return 0; } }
+            //get { return !RawData.api_bull_max() ? 0 : (string)RawData.api_bull_max; }
+            get { try { return int.Parse((string)RawData.api_bull_max); } catch (Exception) { return 0; } }
         }
 
 
@@ -553,8 +576,8 @@ namespace ElectronicObserver.Data {
         /// ボイス再生フラグ
         /// </summary>
         public int VoiceFlag {
-            //get { return !RawData.api_voicef() ? 0 : (int)RawData.api_voicef; }
-            get { try { return (int)RawData.api_voicef; } catch (Exception) { return 0; } }
+            //get { return !RawData.api_voicef() ? 0 : (string)RawData.api_voicef; }
+            get { try { return int.Parse((string)RawData.api_voicef); } catch (Exception) { return 0; } }
         }
 
 

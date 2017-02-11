@@ -29,38 +29,45 @@ namespace Paspy.kcsMonitor.Modules {
             var tt = new TimeTracker("start");
             var taskResult = DownloadAllSwfsAsync(SwfPaths).Result;
             tt.AddLap("end");
-            if (taskResult == null) {
-                Utils.Log("Some of files are not properly downloaded, current execution canceled.", "SwfModule");
-                return;
-            }
-            Utils.Log("All files downloaded. Time elapsed: " + tt.GetLapTimeDiff("start", "end", TimeTracker.TimeFormat.Seconds) + "s.", "SwfModule");
-
-            var existingFiles = Directory.GetFiles(m_exportPath);
-            if (existingFiles.Length < 1) {
-                foreach (var stream in taskResult) {
-                    File.WriteAllBytes(Path.Combine(m_exportPath, stream.Key), stream.Value.ToArray());
-                }
-            }
-
-            foreach (var fileWithPath in existingFiles) {
-                string filename = Path.GetFileName(fileWithPath);
-                if (!SwfFileNames.Contains(filename)) {
-                    Utils.Log("File: " + filename + " is missing. Get a latest version.", "SwfModule");
-                    File.WriteAllBytes(fileWithPath, taskResult[filename].ToArray());
-                } else {
-                    var existingSwf = File.ReadAllBytes(fileWithPath);
-                    if (!Utils.StreamAreEqualHash(existingSwf, taskResult[filename].ToArray())) {
-                        Utils.Log("File: " + filename + " is different from stored version, achieve and update to latest version.", "SwfModule");
-                        var utcDate = DateTime.UtcNow.ToString("yyyyMMddHH");
-                        var achievedPath = Path.Combine(m_exportPath, utcDate);
-                        Directory.CreateDirectory(achievedPath);
-                        var newFilePath = Path.Combine(achievedPath, filename);
-                        File.Move(fileWithPath, newFilePath);
-                        File.WriteAllBytes(fileWithPath, taskResult[filename].ToArray());
+            if (taskResult != null) {
+                Utils.Log("All files downloaded. Time elapsed: " + tt.GetLapTimeDiff("start", "end", TimeTracker.TimeFormat.Seconds) + "s.", "SwfModule");
+                var existingFiles = Directory.GetFiles(m_exportPath);
+                if (existingFiles.Length < 1) {
+                    foreach (var stream in taskResult) {
+                        File.WriteAllBytes(Path.Combine(m_exportPath, stream.Key), stream.Value.ToArray());
                     }
                 }
+                foreach (var fileWithPath in existingFiles) {
+                    string filename = Path.GetFileName(fileWithPath);
+                    if (!SwfFileNames.Contains(filename)) {
+                        if (taskResult.ContainsKey(filename)) {
+                            Utils.Log("File: " + filename + " is missing. Get a latest version.", "SwfModule");
+                            File.WriteAllBytes(fileWithPath, taskResult[filename].ToArray());
+                        } else {
+                            Utils.Log("File: " + filename + " is missing from the source. Achieve the missing file.", "SwfModule");
+                            var utcDate = DateTime.UtcNow.ToString("yyyyMMddHH");
+                            var achievedPath = Path.Combine(m_exportPath, utcDate);
+                            Directory.CreateDirectory(achievedPath);
+                            var newFilePath = Path.Combine(achievedPath, filename);
+                            File.Move(fileWithPath, newFilePath);
+                        }
+                    } else {
+                        var existingSwf = File.ReadAllBytes(fileWithPath);
+                        if (!Utils.StreamAreEqualHash(existingSwf, taskResult[filename].ToArray())) {
+                            Utils.Log("File: " + filename + " is different from stored version, achieve and update to latest version.", "SwfModule");
+                            var utcDate = DateTime.UtcNow.ToString("yyyyMMddHH");
+                            var achievedPath = Path.Combine(m_exportPath, utcDate);
+                            Directory.CreateDirectory(achievedPath);
+                            var newFilePath = Path.Combine(achievedPath, filename);
+                            File.Move(fileWithPath, newFilePath);
+                            File.WriteAllBytes(fileWithPath, taskResult[filename].ToArray());
+                        }
+                    }
+                }
+                Utils.Log("Current execution cycle is completed.", "SwfModule");
+            } else {
+                Utils.Log("Some of files are not properly downloaded, current execution cycle canceled.", "SwfModule");
             }
-            Utils.Log("Current execution cycle is completed.", "SwfModule");
             m_checkingTimer.Change(m_timeInterval, Timeout.Infinite);
             IsModuleRunning = false;
         }
@@ -107,7 +114,7 @@ namespace Paspy.kcsMonitor.Modules {
         }
 
 
-        const string MODULE_PATH = @"data\SwfModule\";
+        const string MODULE_PATH = @"data/SwfModule/";
 
         private static readonly int[] DECODE_ORDER = { 0, 7, 2, 5, 4, 3, 6, 1 };
 
@@ -130,8 +137,8 @@ namespace Paspy.kcsMonitor.Modules {
             @"http://{0}/kcs/scenes/SallyMain.swf",
             @"http://{0}/kcs/scenes/SupplyMain.swf",
             @"http://{0}/kcs/scenes/TitleMain.swf",
-            @"http://{0}/kcs/scenes/tutorial.swf",
-            @"http://{0}/kcs/scenes/WeddingMain.swf",
+            //@"http://{0}/kcs/scenes/tutorial.swf",
+            //@"http://{0}/kcs/scenes/WeddingMain.swf",
         };
 
         private static readonly string[] SwfFileNames = {
@@ -154,8 +161,8 @@ namespace Paspy.kcsMonitor.Modules {
             "SallyMain.swf",
             "SupplyMain.swf",
             "TitleMain.swf",
-            "tutorial.swf",
-            "WeddingMain.swf",
+            //"tutorial.swf",
+            //"WeddingMain.swf",
         };
 
     }
