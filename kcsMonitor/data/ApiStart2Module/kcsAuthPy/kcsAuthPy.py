@@ -76,8 +76,8 @@ class KancolleAuth:
         #if proxy:
         #    self.connector = aiohttp.ProxyConnector(proxy=proxy, force_close=False)
         #else:
-#        self.connector = aiohttp.ProxyConnector(proxy="http://127.0.0.1:8888", force_close=False)
-        self.connector = None
+        self.connector = aiohttp.ProxyConnector(proxy="http://127.0.0.1:8888", force_close=False)
+        #self.connector = None
         self.session = aiohttp.ClientSession(connector=self.connector)
         self.headers = {'User-Agent': self.user_agent}
 
@@ -216,7 +216,12 @@ class KancolleAuth:
             self.world_id = svdata['api_data']['api_world_id']
             self.world_ip = self.world_ip_list[self.world_id-1]
         else:
-            raise OOIAuthException('调查提督所在镇守府时发生错误')
+            self.server_token['result'] = svdata['api_result']
+            if svdata['api_result'] == 200:
+                error_msg = '镇守府正在进行维护'
+            else:
+                error_msg = '调查提督所在镇守府时发生错误:%d' % (svdata['api_result'])
+            raise OOIAuthException(error_msg)
 
         return self.world_id, self.world_ip, self.st
 
@@ -287,7 +292,7 @@ def CreateAuth(user, password):
     try:
         yield from auth.get_flash()
     except OOIAuthException as e:
-        context = {'login_id': user,'password':password,'error_msg': e.message,'result':0}
+        context = {'login_id': user,'password':password,'error_msg': e.message,'result':auth.server_token['result']}
         return context
     return auth.server_token
 

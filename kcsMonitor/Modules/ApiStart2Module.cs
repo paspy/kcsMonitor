@@ -26,7 +26,7 @@ namespace Paspy.kcsMonitor.Modules {
         private KCDatabase m_kcdbRef;
         Dictionary<string, List<Ship>> m_exportedShips;
         List<SlotItem> m_exportedSlotItems;
-        public ApiStart2Module(string loginId, string password, int fetchTime = 30000) : base(fetchTime) {
+        public ApiStart2Module(string loginId, string password, int fetchTime = 60000) : base(fetchTime) {
             m_loginId = loginId;
             m_password = password;
             m_forceUpdateToken = false;
@@ -38,46 +38,42 @@ namespace Paspy.kcsMonitor.Modules {
 
         protected override void StartModuleCycle(object state) {
             IsModuleRunning = true;
+            string latestJsonStr = null;
             try {
                 Utils.Log("CheckAPIStart2 Start.", "ApiStart2Module");
                 var tt = new TimeTracker("start");
-                var latestJsonStr = UpdateApiStart2Json().Result;
+                latestJsonStr = UpdateApiStart2Json().Result; // return valid json or error code
                 tt.AddLap("end");
-                if (latestJsonStr == null) {
-                    m_forceUpdateToken = true;
-                    Utils.Log("Exception on UpdateApiStart2Json, current execution canceled.", "ApiStart2Module");
-                    m_checkingTimer.Change(3000, Timeout.Infinite);
-                    return;
-                }
-                Utils.Log("Latest api_start2 JSON downloaded. Time elapsed: " + tt.GetLapTimeDiff("start", "end", TimeTracker.TimeFormat.Seconds) + "s.", "ApiStart2Module");
+                if (latestJsonStr != null && latestJsonStr.Length > 3) {
+                    Utils.Log("Latest api_start2 JSON downloaded. Time elapsed: " + tt.GetLapTimeDiff("start", "end", TimeTracker.TimeFormat.Seconds) + "s.", "ApiStart2Module");
+                    var existingJsonFile = Path.Combine(m_exportPath, "api_start2.latest.json");
+                    if (File.Exists(existingJsonFile)) {
+                        string existingJsonStr = File.ReadAllText(existingJsonFile);
+                        dynamic oldJson = JValue.Parse(existingJsonStr);
+                        dynamic newJson = JValue.Parse(latestJsonStr);
+                        if (!JToken.DeepEquals(oldJson, newJson)) {
+                            Utils.Log("Found newer api_start2, achieve and update to latest version.", "ApiStart2Module");
+                            var utcDate = DateTime.UtcNow.ToString("yyyyMMdd");
+                            var newFilePath = Path.Combine(m_exportPath, string.Format(".api_start2.{0}.json", utcDate));
+                            ExportNewContents(oldJson, newJson, utcDate);
+                            File.Copy(existingJsonFile, newFilePath, true);
+                            File.WriteAllText(existingJsonFile, latestJsonStr, new UTF8Encoding(false));
+                            Utils.Log("All changes are saved. Current checking cycle ended.", "ApiStart2Module");
 
-                var existingJsonFile = Path.Combine(m_exportPath, "api_start2.latest.json");
-
-                if (File.Exists(existingJsonFile)) {
-                    string existingJsonStr = File.ReadAllText(existingJsonFile);
-                    dynamic oldJson = JValue.Parse(existingJsonStr);
-                    dynamic newJson = JValue.Parse(latestJsonStr);
-                    if (!JToken.DeepEquals(oldJson, newJson)) {
-                        Utils.Log("Found newer api_start2, achieve and update to latest version.", "ApiStart2Module");
-                        var utcDate = DateTime.UtcNow.ToString("yyyyMMdd");
-                        var newFilePath = Path.Combine(m_exportPath, string.Format(".api_start2.{0}.json", utcDate));
-                        ExportNewContents(oldJson, newJson, utcDate);
-                        File.Copy(existingJsonFile, newFilePath, true);
-                        File.WriteAllText(existingJsonFile, latestJsonStr, new UTF8Encoding(false));
-                        Utils.Log("All changes are saved. Current checking cycle ended.", "ApiStart2Module");
-
+                        } else {
+                            Utils.Log("Nothing change. Current checking cycle ended.", "ApiStart2Module");
+                        }
                     } else {
-                        Utils.Log("Nothing change. Current checking cycle ended.", "ApiStart2Module");
-
+                        File.WriteAllText(existingJsonFile, latestJsonStr, new UTF8Encoding(false));
                     }
                 } else {
-                    File.WriteAllText(existingJsonFile, latestJsonStr, new UTF8Encoding(false));
+                    Utils.Log("Error occurred on UpdateApiStart2Json. Current checking cycle ended.", "ApiStart2Module");
                 }
-
             } catch (Exception ex) {
                 Utils.Log(ex.Message, "ApiStart2Module");
             }
-            m_checkingTimer.Change(m_timeInterval, Timeout.Infinite);
+            m_forceUpdateToken = !(latestJsonStr != null && latestJsonStr.Length > 3);
+            m_checkingTimer.Change((m_forceUpdateToken&&!latestJsonStr.Equals("200")) ? 3000 : m_timeInterval, Timeout.Infinite);
             IsModuleRunning = false;
         }
 
@@ -101,7 +97,7 @@ namespace Paspy.kcsMonitor.Modules {
                             var swfPath = Path.Combine(ship.IsAbyssal ? newAbyssalPath : ship.IsLimitedIllustration ? newLimitedPath : newShipPath, string.Format("{0}_{1}", ship.ID, ship.Name));
                             var swfFile = Path.Combine(swfPath, string.Format("{0}_{1}{2}", ship.ID, ship.Name, Path.GetExtension(ship.IllustrationSwfLink)));
                             Directory.CreateDirectory(swfPath);
-                            ship.IllustrationSwfLink = await Utils.DownloadAndConvertToBase64Async(ship.IllustrationSwfLink, swfFile);
+                            ship.IllustrationSwfLink = await DownloadAndConvertToBase64Async(ship.IllustrationSwfLink, swfFile);
                         }).ContinueWith((p) => {
                             Utils.Log(ship.Name + " swf has downloaded.", "ApiStart2Module");
                         }, TaskContinuationOptions.OnlyOnRanToCompletion)
@@ -115,7 +111,7 @@ namespace Paspy.kcsMonitor.Modules {
                         Task.Run(async () => {
                             var fnNoExt = Path.GetFileNameWithoutExtension(link);
                             var file = Path.Combine(newEquipPath, string.Format("{0}_{1}{2}", fnNoExt, new Uri(link).Segments[5].TrimEnd('/'), Path.GetExtension(link)));
-                            item.ItemIllustrateBase64[Path.GetFileName(file)] = await Utils.DownloadAndConvertToBase64Async(link, file);
+                            item.ItemIllustrateBase64[Path.GetFileName(file)] = await DownloadAndConvertToBase64Async(link, file);
                         }).ContinueWith((p) => {
                             Utils.Log(item.Name + " image has downloaded.", "ApiStart2Module");
                         }, TaskContinuationOptions.OnlyOnRanToCompletion)
@@ -132,6 +128,7 @@ namespace Paspy.kcsMonitor.Modules {
         private async Task<string> UpdateApiStart2Json() {
             try {
                 GetTokenFromKcsAuthPy(m_forceUpdateToken);
+                if (m_token.Length <= 3) return m_token;
                 var postContent = new Dictionary<string, string> {
                         {"api_token", m_token},
                         {"api_verno","1"},
@@ -154,6 +151,38 @@ namespace Paspy.kcsMonitor.Modules {
                 return null;
             }
         }
+
+        private async Task<string> DownloadAndConvertToBase64Async(string address, string filenameWithPath = "", bool exportImages = false) {
+            CancellationTokenSource source = new CancellationTokenSource();
+            CancellationToken token = source.Token;
+            try {
+                using (var httpClient = new HttpClient(new RetryHandler(new HttpClientHandler()))) {
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(address))) {
+                        var response = await httpClient.SendAsync(request, token);
+                        if (response == null) source.Cancel();
+                        MemoryStream contentStream = await response.Content.ReadAsStreamAsync() as MemoryStream;
+                        var b = contentStream.ToArray();
+                        if (filenameWithPath.Length > 0)
+                            File.WriteAllBytes(filenameWithPath, b);
+                        return Convert.ToBase64String(b);
+                    }
+                }
+            } catch (AggregateException ae) {
+                foreach (Exception e in ae.InnerExceptions) {
+                    if (e is TaskCanceledException)
+                        Utils.Log(e.Message + " " + address, "ApiStart2Module");
+                    else
+                        Utils.Log("Exception: " + e.GetType().Name, "ApiStart2Module");
+                }
+            } finally {
+                source.Dispose();
+            }
+            return null;
+        }
+
+        //private async Task<Dictionary<string, string>> GetImagesFromFFDEC(string swfPath) {
+
+        //}
 
         private void GetTokenFromKcsAuthPy(bool forceUpdate = false) {
             string jsonPath = Path.Combine(MODULE_PATH, "kcsAuthPy", m_loginId + ".json");
@@ -198,7 +227,9 @@ namespace Paspy.kcsMonitor.Modules {
                     m_server = dyJson.world_addr;
                     Utils.Log(Consts.WorldServerName[(int)dyJson.world_id - 1] + " " + m_token, "ApiStart2Module");
                 } else {
-                    Utils.Log("Error: " + dyJson.error_msg, "ApiStart2Module");
+                    m_token = dyJson.result;
+                    m_server = "";
+                    Utils.Log(string.Format("Error: {0}, code: {1}", dyJson.error_msg, dyJson.result), "ApiStart2Module");
                 }
             } catch (Exception ex) {
                 Utils.Log(ex.Message, "ApiStart2Module");

@@ -14,7 +14,7 @@ namespace Paspy.kcsMonitor.Modules {
         private Random m_random;
         private string m_rndServerAddr;
         private Dictionary<string, byte[]> m_tmpSwfs;
-        public SwfModule(int fetchTime = 30000) : base(fetchTime) {
+        public SwfModule(int fetchTime = 60000) : base(fetchTime) {
             m_exportPath = Path.Combine(Directory.GetCurrentDirectory(), MODULE_PATH);
             Directory.CreateDirectory(m_exportPath);
             m_tmpSwfs = new Dictionary<string, byte[]>();
