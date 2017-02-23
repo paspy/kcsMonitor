@@ -16,8 +16,8 @@ namespace Paspy.kcsMonitor {
                 return;
             }
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            Utils.Log("Welcome to kcsMonitor. All selected modules will start in few seconds.", "Main");
-            Utils.Log("Press r to immediately start waiting modules. Press q to exit.", "Main");
+            Utils.Log("Welcome to kcsMonitor. All selected modules will start in few seconds.", "Main", ConsoleColor.Yellow);
+            Utils.Log("Press r to immediately start waiting modules. Press q to exit.", "Main",ConsoleColor.Yellow);
             var usrArg = m_clParser.Arguments.Find(x => x.ShortName == 'u') as CommandLineParser.Arguments.ValueArgument<string>;
             var pwdArg = m_clParser.Arguments.Find(x => x.ShortName == 'p') as CommandLineParser.Arguments.ValueArgument<string>;
             var fetArg = m_clParser.Arguments.Find(x => x.ShortName == 't') as CommandLineParser.Arguments.ValueArgument<int>;

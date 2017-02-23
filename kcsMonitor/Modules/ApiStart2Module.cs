@@ -35,14 +35,14 @@ namespace Paspy.kcsMonitor.Modules {
             m_exportPath = Path.Combine(Directory.GetCurrentDirectory(), MODULE_PATH);
             Directory.CreateDirectory(m_exportPath);
             m_kcdbRef = KCDatabase.Instance;
-            Utils.Log("ApiStart2Module has been initialized. Checking time interval is " + (fetchTime / 1000) + "s.", "ApiStart2Module");
+            Utils.Log("ApiStart2Module has been initialized. Checking time interval is " + (fetchTime / 1000) + "s.", "ApiStart2Module", ConsoleColor.Green);
         }
 
         protected override void StartModuleCycle(object state) {
             IsModuleRunning = true;
             string latestJsonStr = null;
             try {
-                Utils.Log("CheckAPIStart2 Start.", "ApiStart2Module");
+                Utils.Log("CheckAPIStart2 Started a new checking cycle.", "ApiStart2Module", ConsoleColor.DarkGreen);
                 var tt = new TimeTracker("start");
                 if (!m_offlineDebug)
                     latestJsonStr = UpdateApiStart2Json().Result; // return valid json or error code
@@ -59,13 +59,13 @@ namespace Paspy.kcsMonitor.Modules {
                         dynamic oldJson = JValue.Parse(existingJsonStr);
                         dynamic newJson = JValue.Parse(latestJsonStr);
                         if (!JToken.DeepEquals(oldJson, newJson)) {
-                            Utils.Log("Found newer api_start2, achieve and update to latest version.", "ApiStart2Module");
+                            Utils.Log("Found newer api_start2, achieve and update to latest version.", "ApiStart2Module", ConsoleColor.Red, ConsoleColor.White);
                             var utcDate = DateTime.UtcNow.ToString("yyyyMMdd");
                             var newFilePath = Path.Combine(m_exportPath, string.Format("api_start2.{0}.json", utcDate));
                             ExportNewContents(oldJson, newJson, utcDate);
                             File.Copy(existingJsonFile, newFilePath, true);
                             File.WriteAllText(existingJsonFile, latestJsonStr, new UTF8Encoding(false));
-                            Utils.Log("All changes are saved. Current checking cycle ended.", "ApiStart2Module");
+                            Utils.Log("All changes are saved. Current checking cycle ended.", "ApiStart2Module", ConsoleColor.Green);
 
                         } else {
                             Utils.Log("Nothing change. Current checking cycle ended.", "ApiStart2Module");
@@ -74,12 +74,13 @@ namespace Paspy.kcsMonitor.Modules {
                         File.WriteAllText(existingJsonFile, latestJsonStr, new UTF8Encoding(false));
                     }
                 } else {
-                    Utils.Log("Error occurred on UpdateApiStart2Json. Current checking cycle ended.", "ApiStart2Module");
+                    Utils.Log("Error occurred on UpdateApiStart2Json. Current checking cycle ended.", "ApiStart2Module", ConsoleColor.DarkRed);
                 }
             } catch (Exception ex) {
-                Utils.Log(ex.Message, "ApiStart2Module");
+                Utils.Log(ex.Message, "ApiStart2Module", ConsoleColor.White, ConsoleColor.DarkRed);
             }
             m_forceUpdateToken = !(latestJsonStr != null && latestJsonStr.Length > 3);
+            if (latestJsonStr == null) latestJsonStr = "";
             m_checkingTimer.Change((m_forceUpdateToken && !latestJsonStr.Equals("200")) ? 3000 : m_timeInterval, Timeout.Infinite);
             IsModuleRunning = false;
         }
@@ -281,7 +282,7 @@ namespace Paspy.kcsMonitor.Modules {
                 } else {
                     m_token = dyJson.result;
                     m_server = "";
-                    Utils.Log(string.Format("Error: {0}, code: {1}", dyJson.error_msg, dyJson.result), "ApiStart2Module");
+                    Utils.Log(string.Format("Error: {0}, code: {1}", dyJson.error_msg, dyJson.result), "ApiStart2Module", ConsoleColor.Red);
                 }
             } catch (Exception ex) {
                 Utils.Log(ex.Message, "ApiStart2Module");

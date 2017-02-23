@@ -6,6 +6,8 @@ using System.Net.Http.Headers;
 namespace Paspy.kcsMonitor {
     public class Consts {
 
+        public static readonly Random RndEng = new Random();
+
         public static readonly List<string> WorldServerAddr = new List<string>() {
                "203.104.209.71"  , // 横須賀鎮守府   
                "203.104.209.87"  , // 呉鎮守府        

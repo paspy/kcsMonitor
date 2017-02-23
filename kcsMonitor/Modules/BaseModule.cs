@@ -14,7 +14,7 @@ namespace Paspy.kcsMonitor.Modules {
         public BaseModule(int fetchTime) {
             m_isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             m_timeInterval = fetchTime;
-            m_checkingTimer = new Timer(StartModuleCycle, null, 0, Timeout.Infinite);
+            m_checkingTimer = new Timer(StartModuleCycle, null, 100, Timeout.Infinite);
             IsModuleRunning = false;
         }
 

@@ -13,11 +13,21 @@ using Newtonsoft.Json.Linq;
 namespace Paspy.kcsMonitor.Utility {
     public static class Utils {
         private static object locker = new object();
-        public static void Log(string log, string module = "kcsMonitor") {
+
+        public static void Log(string log, string module = "kcsMonitor", ConsoleColor fgc = ConsoleColor.Gray, ConsoleColor bgc = ConsoleColor.Black) {
             lock (locker) {
                 using (StreamWriter sw = new StreamWriter(new FileStream("data/kcsMonitor.log", FileMode.Append, FileAccess.Write, FileShare.ReadWrite), Encoding.UTF8)) {
+
                     string s = string.Format("[{0}][{1}] {2}", DateTime.UtcNow.ToString(), module, log);
-                    Console.WriteLine(s);
+                    string head = string.Format("[{0}][{1}] ", DateTime.UtcNow.ToString(), module);
+                    Console.BackgroundColor = ConsoleColor.Black;
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.Write(head);
+                    Console.BackgroundColor = bgc;
+                    Console.ForegroundColor = fgc;
+                    Console.WriteLine(log);
+                    Console.BackgroundColor = ConsoleColor.Black;
+                    Console.ForegroundColor = ConsoleColor.Gray;
                     sw.WriteLine(s);
                 }
             }
@@ -69,6 +79,6 @@ namespace Paspy.kcsMonitor.Utility {
             }
         }
 
-        
+
     }
 }
