@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Paspy.kcsMonitor.Utility;
 
 namespace Paspy.kcsMonitor.Modules {
-    class SwfModule : BaseModule {
+    sealed class SwfModule : BaseModule {
 
         private Random m_random;
         private string m_rndServerAddr;
@@ -112,7 +112,6 @@ namespace Paspy.kcsMonitor.Modules {
             }
             return decodedBytes;
         }
-
 
         const string MODULE_PATH = @"data/SwfModule/";
 

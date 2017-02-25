@@ -8,6 +8,18 @@ namespace Paspy.kcsMonitor {
     public class kcsMonitor {
 
         public static void Main(string[] args) {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            var sm = new SenkaModule();
+
+            do {
+                if (Console.ReadKey(true).Key == ConsoleKey.R) sm.Restart();
+                if (Console.ReadKey(true).Key == ConsoleKey.T) sm.ReportTime();
+            } while (Console.ReadKey(true).Key != ConsoleKey.Q);
+
+            return;
+            // above test
+
             try {
                 InitCLParser();
                 m_clParser.ParseCommandLine(args);
@@ -15,9 +27,8 @@ namespace Paspy.kcsMonitor {
                 Console.WriteLine("Usage: kcsMonitor -u [username] -p [password] -a <api_start2> -s <clientSwf>");
                 return;
             }
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             Utils.Log("Welcome to kcsMonitor. All selected modules will start in few seconds.", "Main", ConsoleColor.Yellow);
-            Utils.Log("Press r to immediately start waiting modules. Press q to exit.", "Main",ConsoleColor.Yellow);
+            Utils.Log("Press r to immediately start waiting modules. Press q to exit.", "Main", ConsoleColor.Yellow);
             var usrArg = m_clParser.Arguments.Find(x => x.ShortName == 'u') as CommandLineParser.Arguments.ValueArgument<string>;
             var pwdArg = m_clParser.Arguments.Find(x => x.ShortName == 'p') as CommandLineParser.Arguments.ValueArgument<string>;
             var fetArg = m_clParser.Arguments.Find(x => x.ShortName == 't') as CommandLineParser.Arguments.ValueArgument<int>;

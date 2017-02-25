@@ -251,5 +251,10 @@ paket-files/
 .idea/
 *.sln.iml
 kcsMonitor/data/ApiStart2Module/[Ee]xport/
-*.json
 *.swf
+kcsMonitor/data/SenkaModule/APITokens.xml
+*.7z
+kcsMonitor/data/SenkaModule/
+kcsMonitor/data/ApiStart2Module/kcsAuthPy/*.json
+kcsMonitor/data/ApiStart2Module/*.json
+kcsMonitor/Properties/launchSettings.json

@@ -17,7 +17,7 @@
     "MySql.Data.Core": "7.0.4-IR-191",
     "System.Diagnostics.Process": "4.3.0",
     "System.Xml.XDocument": "4.3.0",
-  },
+    "EnterpriseLibrary.TransientFaultHandling.Core": "1.0.0"  },
   "frameworks": {
     "netcoreapp1.0": {
       "imports": "dnxcore50"

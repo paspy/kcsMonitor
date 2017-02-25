@@ -1,19 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 /// <summary>
 /// De-obfuscated version of _APIBaseS_ and other helper functions
 /// </summary>
-namespace kcsMonitor.Utility {
-    public static class kcsKeyGen {
+namespace Paspy.kcsMonitor.Utility {
+    public static class KeyGen {
 
         // A set of key frequently update by Kancolle officials - Incorrect key would produce error code 100
         static readonly int[] Il = { 4294, 9077, 9707, 2139, 5643, 4132653, 1033183, 8560, 7973, 9025, 13, 4164, 3791, 10, 8809, 8357, 1000, 1875979 };
 
         /// <summary>
-        /// Construct a signature string that will verified by Kancolle server (api_rank, api_port, ...)
+        /// Construct a signature string that will verified by Kancolle server (api_ranking, api_port, ...)
         /// </summary>
         /// <param name="param1">Teitoku's member ID</param>
         /// <returns></returns>
@@ -49,7 +47,7 @@ namespace kcsMonitor.Utility {
         /// <param name="obfuscatedRate">Obfuscated ranking rate from Kancolle server</param>
         /// <param name="obfuscatedMedal">Pbfuscated ranking medal number from Kancolle server</param>
         /// <returns></returns>
-        public static Dictionary<string, double> DecodeRankAndMedal(int memberId, int rankNo, int obfuscatedRate, int obfuscatedMedal) {
+        public static Dictionary<string, double> DecodeRankAndMedal(int memberId, int rankNo, long obfuscatedRate, long obfuscatedMedal) {
             Dictionary<string, double> rateAndMedal = new Dictionary<string, double>();
             List<double> magic_l = new List<double>();
             for (int i = 0; i < 10; i++) {
@@ -72,7 +70,8 @@ namespace kcsMonitor.Utility {
             if (param1 == 0) {
                 return 1;
             }
-            string s_sqrt13 = Math.Sqrt(13).ToString();
+            //string s_sqrt13 = Math.Sqrt(13).ToString(); // has precisous problem
+            string s_sqrt13 = "3.605551275463989";
             return s_sqrt13.IndexOf(param1.ToString());
         }
 
@@ -83,8 +82,15 @@ namespace kcsMonitor.Utility {
         /// <param name="firstTwo"></param>
         /// <returns></returns>
         static double Simplified_l_(int memberId, bool firstTwo = false) {
-            var magicNum = Il[Simplified_I1(memberId % 10)];
-            return firstTwo ? Int32.Parse(magicNum.ToString().Substring(0/* NaN */, 2)) : magicNum;
+            int magicNum = 0;
+            try {
+                var i = Simplified_I1(memberId % 10);
+                magicNum = Il[i];
+            } catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine(ex.Message);
+                throw;
+            }
+            return firstTwo ? long.Parse(magicNum.ToString().Substring(0/* NaN */, 2)) : magicNum;
         }
 
         /// <summary>
@@ -93,7 +99,7 @@ namespace kcsMonitor.Utility {
         static class KeyFuncs {
             static Random rnd = new Random();
             public static string a(string param1, int param2, int param3) {
-                return param1.Substring(param2, param3);
+                return param1.Substring(param2, param3 >= (param1.Length - param2) ? param1.Length - param2 : param3);
             }
             public static int b(string param1) {
                 return param1.Length;
@@ -114,7 +120,17 @@ namespace kcsMonitor.Utility {
                 return param1 ^ param2;
             }
             public static int l(string param1, int param2, int param3) {
-                return Int32.Parse(param1.Substring(param2, param3));
+                try {
+                    long result = -1;
+                    if (long.TryParse(param1.Substring(param2, param3), out result)) {
+                        return (int)result;
+                    }
+                    return 0;
+                } catch (Exception e) {
+                    System.Diagnostics.Debug.WriteLine(e.Message);
+                    throw;
+                }
+                
             }
             public static double m(double param1, double param2) {
                 return param1 - param2;
@@ -150,8 +166,9 @@ namespace kcsMonitor.Utility {
             public static int x() {
                 return 4;
             }
-            public static double y(int param1) {
-                return Math.Sqrt(param1);
+            public static decimal y(int param1) {
+                if (param1 == 13) return 3.605551275463989M; // actually always sqrt(13)
+                return (decimal)Math.Sqrt(param1);
             }
             public static double z(double param1, double param2) {
                 return param1 * param2;

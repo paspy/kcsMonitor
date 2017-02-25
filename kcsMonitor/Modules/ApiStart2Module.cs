@@ -16,7 +16,7 @@ using Paspy.kcsMonitor.KCData.ExportData;
 using ElectronicObserver.Data;
 
 namespace Paspy.kcsMonitor.Modules {
-    class ApiStart2Module : BaseModule {
+    sealed class ApiStart2Module : BaseModule {
         #region DEBUG_MODE
         private bool m_offlineDebug = false;
         #endregion
@@ -175,14 +175,11 @@ namespace Paspy.kcsMonitor.Modules {
         }
 
         private async Task<Dictionary<string, string>> DownloadAndConvertToBase64ImagesAsync(string address, string filenameWithPath, bool saveToLocal = false) {
-            CancellationTokenSource source = new CancellationTokenSource();
-            CancellationToken token = source.Token;
             Dictionary<string, string> output = new Dictionary<string, string>();
             try {
-                using (var httpClient = new HttpClient(new RetryHandler(new HttpClientHandler()))) {
+                using (var httpClient = new HttpClient()) {
                     using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(address))) {
-                        var response = await httpClient.SendAsync(request, token);
-                        if (response == null) source.Cancel();
+                        var response = await Utils.RequestAsync(() => httpClient.SendAsync(request));
                         MemoryStream contentStream = await response.Content.ReadAsStreamAsync() as MemoryStream;
                         var b = contentStream.ToArray();
 
@@ -200,8 +197,6 @@ namespace Paspy.kcsMonitor.Modules {
                 }
             } catch (Exception e) {
                 Utils.Log("Exception: " + e.GetType().Name, "ApiStart2Module");
-            } finally {
-                source.Dispose();
             }
             return null;
         }
