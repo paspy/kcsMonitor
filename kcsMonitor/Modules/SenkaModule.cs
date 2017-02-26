@@ -39,26 +39,22 @@ namespace Paspy.kcsMonitor.Modules {
             Directory.CreateDirectory(m_exportPath);
             m_sTokenFile = tokenFile;
             m_dictCollectors = new Dictionary<string, Collector>();
-            //m_threadSafeSenkaDB = new ConcurrentDictionary<string, BlockingCollection<Teitoku>>();
             m_dictPreviousSortedSenkaDB = new Dictionary<string, List<Teitoku>>();
             m_dictLatestSortedSenkaDB = new Dictionary<string, List<Teitoku>>();
             var next = GetNextCycleTimeLeft();
             m_checkingTimer = new Timer(StartModuleCycle, null, next, Timeout.Infinite);
 
-            Utils.Log("SenkaModule has been initialized. Module will start in " + (next / 1000).ToString() + " seconds.", "SenkaModule", ConsoleColor.Cyan);
+            Utils.Log("SenkaModule has been initialized. Module will start in " + FormatedTimeLeft(), "SenkaModule", ConsoleColor.Cyan);
             Utils.Log("Press [T] to report time left.", "SenkaModule", ConsoleColor.Cyan);
-
-            StartModuleCycle(null);
         }
 
         public override void ReportTime() {
             if (!IsModuleRunning)
-                Utils.Log("Module will start in " + (GetNextCycleTimeLeft() / 1000).ToString() + " seconds.", "SenkaModule", ConsoleColor.Yellow);
+                Utils.Log("Module will start in " + FormatedTimeLeft(), "SenkaModule", ConsoleColor.Yellow);
         }
 
         protected override void StartModuleCycle(object state) {
             IsModuleRunning = true;
-            m_dictLatestSortedSenkaDB.Clear();
 
             ImportTokens();
             ImportPreviousLocalSenkaData();
@@ -69,10 +65,14 @@ namespace Paspy.kcsMonitor.Modules {
             CalculateDiffBetweenPrevAndCurr();
             ExportSenka();
 
+            m_dictPreviousSortedSenkaDB.Clear();
+            m_dictLatestSortedSenkaDB.Clear();
+            m_dictCollectors.Clear();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+
             var next = GetNextCycleTimeLeft();
             m_checkingTimer.Change(next, Timeout.Infinite);
-            Utils.Log("Current execution cycle has finished. Next cycle will start in " +
-                (next / 1000).ToString() + " seconds.", "SenkaModule", ConsoleColor.Cyan);
+            Utils.Log("Current execution cycle has finished. Next cycle will start in " + FormatedTimeLeft(), "SenkaModule", ConsoleColor.Cyan);
             IsModuleRunning = false;
         }
 
@@ -542,16 +542,14 @@ namespace Paspy.kcsMonitor.Modules {
                     if (prevTeitoku == null) continue;
                     if (prevTeitoku.Experiences > 0) {
                         var senkaFromExp = (currTeitoku.Experiences - prevTeitoku.Experiences) / 1428.0;
-                        currTeitoku.EOSenka = currTeitoku.Senka - senkaFromExp;
+                        currTeitoku.EOSenka = currTeitoku.Senka - prevTeitoku.Senka - senkaFromExp;
                         currTeitoku.DeltaRankNo = prevTeitoku.RankNo - latestSenkaList[i].RankNo;
-                        currTeitoku.AverageSenkaPerHour = senkaFromExp / (prevTeitoku.LastUpdate - currTeitoku.LastUpdate).TotalHours;
+                        currTeitoku.AverageSenkaPerHour = senkaFromExp / (currTeitoku.LastUpdate - prevTeitoku.LastUpdate).TotalHours;
                         currTeitoku.LastUpdate = DateTime.UtcNow;
                         foundNum++;
                     }
                 }
-                Utils.Log(string.Format(
-                    "Calculate server {0} differences between previous and current senka data completed.",
-                    serverPair.Key), "SenkaModule", ConsoleColor.Green);
+                Utils.Log(string.Format("server {0} differences has been calculate .", serverPair.Key), "SenkaModule", ConsoleColor.Green);
             }
         }
 
@@ -565,6 +563,12 @@ namespace Paspy.kcsMonitor.Modules {
             TimeSpan nextTime = new TimeSpan(currJST.Days + day, hour, 0, currJST.Seconds + forwardSecond, 0);
             var result = (int)Math.Floor((nextTime - currJST).TotalMilliseconds);
             return result;
+        }
+
+        private string FormatedTimeLeft() {
+            TimeSpan t = TimeSpan.FromMilliseconds(GetNextCycleTimeLeft());
+            return string.Format(
+                "{0:D2}:{1:D2}:{2:D2}:{3:D3}ms", t.Hours, t.Minutes, t.Seconds, t.Milliseconds);
         }
 
         private void ExportSenka(bool needExport = true) {

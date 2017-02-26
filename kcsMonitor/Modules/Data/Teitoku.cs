@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
+/// <summary>
+/// Version 1.0.0
+/// </summary>
 namespace Paspy.kcsMonitor.Modules.Data {
 
     public struct PracticeShip {
@@ -47,9 +48,9 @@ namespace Paspy.kcsMonitor.Modules.Data {
         public int Furnitures { get; set; }
         #endregion
 
-        #region EO Senka - Testing
+        #region Extra
         /// <summary>
-        /// EOSenka = Senka - (CurrentExp - LastExp) / 1428.0
+        /// EOSenka = PrevEOSenka + CurrSenka - PrevSenka - (CurrExp - PrevExp) / 1428.0
         /// </summary>
         public double EOSenka { get; set; }
         public int DeltaRankNo { get; set; }
