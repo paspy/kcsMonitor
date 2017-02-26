@@ -180,7 +180,7 @@ namespace Paspy.kcsMonitor.Modules {
         }
 
         private void ImportPreviousLocalSenkaData() {
-            var jst = Utils.GetNowJST();
+            var jst = Utils.GetJstNow();
             int prevDay = jst.Hour >= 0 && jst.Hour < 3 ? (jst.Day - 1) : jst.Day;
             int prevHour = jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15;
             if (prevHour == 15) prevHour = 3;
@@ -189,7 +189,7 @@ namespace Paspy.kcsMonitor.Modules {
                 prevDay--;
             }
             var filename =
-                string.Format("{0}-{1}-{2}_{3}.json", jst.Year.ToString("D4"), jst.Month.ToString("D2"), prevDay.ToString("D2"), prevHour);
+                string.Format("{0}-{1}-{2}_{3}.json", jst.Year.ToString("D4"), jst.Month.ToString("D2"), prevDay.ToString("D2"), prevHour.ToString("D2"));
             string[] subServerDirs = Directory.GetDirectories(m_exportPath);
             foreach (var serverExt in subServerDirs) {
                 var filenameWithPath = Path.Combine(serverExt, filename);
@@ -203,14 +203,14 @@ namespace Paspy.kcsMonitor.Modules {
         }
 
         private void ImportLatestLocalSenkaData() {
-            var jst = Utils.GetNowJST();
+            var jst = Utils.GetJstNow();
             var filename =
                 string.Format(
                     "{0}-{1}-{2}_{3}.json",
                     jst.Year.ToString("D4"),
                     jst.Month.ToString("D2"),
                     jst.Hour >= 0 && jst.Hour < 3 ? (jst.Day - 1).ToString("D2") : jst.Day.ToString("D2"),
-                    jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15);
+                    (jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15).ToString("D2"));
             string[] subServerDirs = Directory.GetDirectories(m_exportPath);
             foreach (var serverExt in subServerDirs) {
                 var filenameWithPath = Path.Combine(serverExt, filename);
@@ -520,7 +520,7 @@ namespace Paspy.kcsMonitor.Modules {
                     teitoku.ItemSlots = (int)api_data.api_slotitem[1];
                     teitoku.CurrentItems = (int)api_data.api_slotitem[0];
                     teitoku.Furnitures = (int)api_data.api_furniture;
-                    teitoku.LastUpdate = DateTime.UtcNow;
+                    //teitoku.LastUpdate = DateTime.UtcNow;
                     return teitoku;
                 }
             } catch (Exception e) {
@@ -542,7 +542,11 @@ namespace Paspy.kcsMonitor.Modules {
                     if (prevTeitoku == null) continue;
                     if (prevTeitoku.Experiences > 0) {
                         var senkaFromExp = (currTeitoku.Experiences - prevTeitoku.Experiences) / 1428.0;
-                        currTeitoku.EOSenka = currTeitoku.Senka - prevTeitoku.Senka - senkaFromExp;
+                        // Set max EXP Senka per hour is 30
+                        var tmpEOSenka = (currTeitoku.Senka - prevTeitoku.Senka - senkaFromExp);
+                        currTeitoku.EOSenka = (tmpEOSenka + 30) < 75.0? 0.0 : tmpEOSenka;
+                        currTeitoku.TotalEOSenka = prevTeitoku.TotalEOSenka + currTeitoku.EOSenka;
+                        currTeitoku.DeltaSenka = currTeitoku.Senka - prevTeitoku.Senka;
                         currTeitoku.DeltaRankNo = prevTeitoku.RankNo - latestSenkaList[i].RankNo;
                         currTeitoku.AverageSenkaPerHour = senkaFromExp / (currTeitoku.LastUpdate - prevTeitoku.LastUpdate).TotalHours;
                         currTeitoku.LastUpdate = DateTime.UtcNow;
@@ -553,16 +557,15 @@ namespace Paspy.kcsMonitor.Modules {
             }
         }
 
-        private int GetNextCycleTimeLeft(int forwardSecond = 20) {
-            var currJST = Utils.GetNowJST().TimeOfDay;
+        private int GetNextCycleTimeLeft(int forwardSecond = 10) {
+            var currJST = Utils.GetJstNow().TimeOfDay;
             int hour = 0;
             int day = 0;
             if (currJST.Hours < 3) hour = 3;
             else if (currJST.Hours >= 3 && currJST.Hours < 15) hour = 15;
             else { hour = 3; day++; }
-            TimeSpan nextTime = new TimeSpan(currJST.Days + day, hour, 0, currJST.Seconds + forwardSecond, 0);
-            var result = (int)Math.Floor((nextTime - currJST).TotalMilliseconds);
-            return result;
+            TimeSpan nextTime = new TimeSpan(currJST.Days + day, hour, 0, currJST.Seconds, 0);
+            return (int)Math.Floor((nextTime - currJST).TotalMilliseconds) + forwardSecond * 1000;
         }
 
         private string FormatedTimeLeft() {
@@ -585,7 +588,7 @@ namespace Paspy.kcsMonitor.Modules {
                     jst.Year.ToString("D4"),
                     jst.Month.ToString("D2"),
                     jst.Hour >= 0 && jst.Hour < 3 ? (jst.Day - 1).ToString("D2") : jst.Day.ToString("D2"),
-                    jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15);
+                    (jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15).ToString("D2"));
 
                 File.WriteAllText(Path.Combine(exportFile, filename), JsonConvert.SerializeObject(serverPair.Value, Formatting.Indented));
                 Utils.Log(string.Format("{0}'s senka {1} has been saved.", serverPair.Key, filename), "SenkaModule", ConsoleColor.Yellow);

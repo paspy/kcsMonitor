@@ -53,7 +53,9 @@ namespace Paspy.kcsMonitor.Modules.Data {
         /// EOSenka = PrevEOSenka + CurrSenka - PrevSenka - (CurrExp - PrevExp) / 1428.0
         /// </summary>
         public double EOSenka { get; set; }
+        public double TotalEOSenka { get; set; }
         public int DeltaRankNo { get; set; }
+        public int DeltaSenka { get; set; }
         public double AverageSenkaPerHour { get; set; }
         #endregion
 

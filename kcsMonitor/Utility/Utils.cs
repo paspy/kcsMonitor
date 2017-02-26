@@ -61,7 +61,7 @@ namespace Paspy.kcsMonitor.Utility {
             return msg;
         }
 
-        public static DateTime GetNowJST() {
+        public static DateTime GetJstNow() {
             return TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.Local, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"));
         }
 
