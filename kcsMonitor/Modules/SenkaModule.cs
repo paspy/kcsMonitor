@@ -9,12 +9,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
+using System.IO.Compression;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using Paspy.kcsMonitor.Utility;
 using Paspy.kcsMonitor.Modules.Data;
-
 namespace Paspy.kcsMonitor.Modules {
     sealed class SenkaModule : BaseModule {
 
@@ -55,24 +55,29 @@ namespace Paspy.kcsMonitor.Modules {
 
         protected override void StartModuleCycle(object state) {
             IsModuleRunning = true;
+            try {
 
-            ImportTokens();
-            ImportPreviousLocalSenkaData();
-            ImportLatestLocalSenkaData();
-            GetRemoteLatestSenkaData();
-            MatchingFromPreviousSenkaData();
-            MatchingFromRawMemberList();
-            CalculateDiffBetweenPrevAndCurr();
-            ExportSenka();
+                ImportTokens();
+                ImportPreviousLocalSenkaData();
+                ImportLatestLocalSenkaData();
+                GetRemoteLatestSenkaData();
+                MatchingFromPreviousSenkaData();
+                MatchingFromRawMemberList();
+                CalculateDiffBetweenPrevAndCurr();
+                ExportSenka();
 
+                var next = GetNextCycleTimeLeft();
+                m_checkingTimer.Change(next, Timeout.Infinite);
+                Utils.Log("Current execution cycle has finished. Next cycle will start in " + FormatedTimeLeft(), "SenkaModule", ConsoleColor.Cyan);
+            } catch (Exception) {
+                Utils.Log("Critical Error Found. Restart in 5 seconds.", "SenkaModule", ConsoleColor.Red);
+                m_checkingTimer.Change(5000, Timeout.Infinite);
+
+            }
             m_dictPreviousSortedSenkaDB.Clear();
             m_dictLatestSortedSenkaDB.Clear();
             m_dictCollectors.Clear();
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
-
-            var next = GetNextCycleTimeLeft();
-            m_checkingTimer.Change(next, Timeout.Infinite);
-            Utils.Log("Current execution cycle has finished. Next cycle will start in " + FormatedTimeLeft(), "SenkaModule", ConsoleColor.Cyan);
             IsModuleRunning = false;
         }
 
@@ -85,7 +90,7 @@ namespace Paspy.kcsMonitor.Modules {
                     if (m_dictLatestSortedSenkaDB.ContainsKey(collector.ServerName))
                         if (m_dictLatestSortedSenkaDB[collector.ServerName].Count > 0)
                             continue;
-                    needExport = true; // if anything missing, save to file.
+                    needExport = true; // if any server missing, save to file.
                     threadSafeSenkaDB[collector.ServerName] = new BlockingCollection<Teitoku>();
                     for (int pageNo = 1; pageNo < 100; pageNo++) {
                         var newTask = GetRankPageInfoAsync(pageNo, collector);
@@ -95,6 +100,10 @@ namespace Paspy.kcsMonitor.Modules {
                             }
                             Utils.Log(string.Format("Total {0} has been cached from server {1}. (Unordered Log)", threadSafeSenkaDB[collector.ServerName].Count, collector.ServerName), "SenkaModule");
                         }, TaskContinuationOptions.OnlyOnRanToCompletion));
+                        if (tasks.Count >= 25) {
+                            Task.WaitAll(tasks.ToArray());
+                            tasks.Clear();
+                        }
                     }
                     Task.WaitAll(tasks.ToArray());
                     threadSafeSenkaDB[collector.ServerName].Add(new Teitoku(0, "Metadata")); // a metadata
@@ -180,13 +189,15 @@ namespace Paspy.kcsMonitor.Modules {
         }
 
         private void ImportPreviousLocalSenkaData() {
+            bool isLastDay = (Utils.GetJstNow().AddDays(1).Day == 1);
             var jst = Utils.GetJstNow();
-            int prevDay = jst.Hour >= 0 && jst.Hour < 3 ? (jst.Day - 1) : jst.Day;
+            var lastDay = DateTime.DaysInMonth(jst.Year, jst.Month);
+            int prevDay = jst.Hour >= 0 && jst.Hour < 3 ? isLastDay ? lastDay : (jst.Day - 1) : jst.Day;
             int prevHour = jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15;
             if (prevHour == 15) prevHour = 3;
             else {
                 prevHour = 15;
-                prevDay--;
+                prevDay = isLastDay ? lastDay : prevDay - 1;
             }
             var filename =
                 string.Format("{0}-{1}-{2}_{3}.json", jst.Year.ToString("D4"), jst.Month.ToString("D2"), prevDay.ToString("D2"), prevHour.ToString("D2"));
@@ -232,19 +243,26 @@ namespace Paspy.kcsMonitor.Modules {
         }
 
         private void MatchingFromRawMemberList() {
-            string[] subServerDirs = Directory.GetDirectories(m_exportPath);
             m_dictRawMemberDB = new Dictionary<string, List<RawMember>>();
+            string[] subServerDirs = Directory.GetDirectories(m_exportPath);
             // load raw members for data matching
             foreach (var serverExt in subServerDirs) {
-                var serverName = Path.GetFileNameWithoutExtension(serverExt).Substring(3); // delete XX_ prefix
-                var rawMemberFile = Path.Combine(serverExt, DEFAULT_MEMBER_DB);
+                var serverNamePrefix = Path.GetFileNameWithoutExtension(serverExt);
+                var serverName = serverNamePrefix.Substring(3); // delete XX_ prefix
+                var rawMemberFile = Path.Combine(m_exportPath, string.Format(DEFAULT_MEMBER_DB_ZIP, serverNamePrefix));
                 if (File.Exists(rawMemberFile)) {
-                    m_dictRawMemberDB[serverName] =
-                        JsonConvert.DeserializeObject<List<RawMember>>(File.ReadAllText(rawMemberFile), new JsonSerializerSettings {
-                            NullValueHandling = NullValueHandling.Ignore
-                        });
-                    Utils.Log(string.Format("{0}'s raw member list has been loaded.", serverName), "SenkaModule", ConsoleColor.DarkYellow);
+                    using (var zipMS = new MemoryStream(File.ReadAllBytes(rawMemberFile)))
+                    using (ZipArchive archive = new ZipArchive(zipMS)) {
+                        var jsonStream = archive.Entries.ToList().Find(x => x.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)).Open();
+                        using (StreamReader sr = new StreamReader(jsonStream, System.Text.Encoding.UTF8))
+                        using (var jsonTextReader = new JsonTextReader(sr)) {
+                            var serializer = new JsonSerializer();
+                            m_dictRawMemberDB[serverName] = serializer.Deserialize<List<RawMember>>(jsonTextReader);
+                        }
+                    }
                 }
+                Utils.Log(string.Format("{0}'s raw member list has been loaded.", serverName), "SenkaModule", ConsoleColor.DarkYellow);
+
             }
 
             // 1st - Find matching nickname in raw member list
@@ -274,7 +292,9 @@ namespace Paspy.kcsMonitor.Modules {
         }
 
         private void DistinctFromPreviousSenkaData(string serverName) {
+            if (!m_dictPreviousSortedSenkaDB.ContainsKey(serverName)) return;
             var prevSenkaList = m_dictPreviousSortedSenkaDB[serverName];
+
             var latestSenkaList = m_dictLatestSortedSenkaDB[serverName];
             int foundNum = 0;
             for (int i = 1/*skip metadata*/; i < latestSenkaList.Count(); i++) {
@@ -324,7 +344,7 @@ namespace Paspy.kcsMonitor.Modules {
                 };
                 var httpReqMsg = Utils.CreateHttpRequestMessage(
                                 string.Format(API_RANK_PAGE, collector.ServerAddress), new FormUrlEncodedContent(postContent));
-                var respones = await Utils.RequestAsync(() => collector.GetClient().SendAsync(httpReqMsg));
+                var respones = await collector.GetClient().SendAsync(httpReqMsg);
                 var rawResult = await respones.Content.ReadAsStringAsync();
                 var rawJson = rawResult.Substring(7); // delete "svdata="
                 dynamic json = JToken.Parse(rawJson);
@@ -504,17 +524,19 @@ namespace Paspy.kcsMonitor.Modules {
                     teitoku.HeadquarterLevel = api_data.api_level;
                     teitoku.Experiences = (long)api_data.api_experience[0];
                     teitoku.DeckName = api_data.api_deckname;
-                    teitoku.DeckShips = new List<PracticeShip>();
-                    dynamic ships = api_data.api_deck.api_ships;
-                    foreach (dynamic ship in ships) {
-                        if (ship.api_level == null) continue;
-                        var ds = new PracticeShip();
-                        ds._id = ship.api_id;
-                        ds.Level = ship.api_level;
-                        ds.ShipId = ship.api_ship_id;
-                        ds.Star = ship.api_star;
-                        teitoku.DeckShips.Add(ds);
-                    }
+                    #region Disable
+                    //teitoku.DeckShips = new List<PracticeShip>();
+                    //dynamic ships = api_data.api_deck.api_ships;
+                    //foreach (dynamic ship in ships) {
+                    //    if (ship.api_level == null) continue;
+                    //    var ds = new PracticeShip();
+                    //    ds._id = ship.api_id;
+                    //    ds.Level = ship.api_level;
+                    //    ds.ShipId = ship.api_ship_id;
+                    //    ds.Star = ship.api_star;
+                    //    teitoku.DeckShips.Add(ds);
+                    //}
+                    #endregion
                     teitoku.ShipSlots = (int)api_data.api_ship[1];
                     teitoku.CurrentShips = (int)api_data.api_ship[0];
                     teitoku.ItemSlots = (int)api_data.api_slotitem[1];
@@ -531,9 +553,9 @@ namespace Paspy.kcsMonitor.Modules {
 
         private void CalculateDiffBetweenPrevAndCurr() {
             foreach (var serverPair in m_dictLatestSortedSenkaDB) {
+                if (!m_dictPreviousSortedSenkaDB.ContainsKey(serverPair.Key)) return;
                 var prevSenkaList = m_dictPreviousSortedSenkaDB[serverPair.Key];
                 var latestSenkaList = m_dictLatestSortedSenkaDB[serverPair.Key];
-                int foundNum = 0;
                 for (int i = 1/*skip metadata*/; i < latestSenkaList.Count(); i++) {
                     var currTeitoku = latestSenkaList[i];
                     var prevTeitoku = prevSenkaList.Find(
@@ -544,13 +566,14 @@ namespace Paspy.kcsMonitor.Modules {
                         var senkaFromExp = (currTeitoku.Experiences - prevTeitoku.Experiences) / 1428.0;
                         // Set max EXP Senka per hour is 30
                         var tmpEOSenka = (currTeitoku.Senka - prevTeitoku.Senka - senkaFromExp);
-                        currTeitoku.EOSenka = (tmpEOSenka + 30) < 75.0? 0.0 : tmpEOSenka;
+
+                        currTeitoku.EOSenka = (tmpEOSenka + 30) < 75.0 ? 0.0 : tmpEOSenka;
                         currTeitoku.TotalEOSenka = prevTeitoku.TotalEOSenka + currTeitoku.EOSenka;
+                        currTeitoku.AverageSenkaPerHour = senkaFromExp / (currTeitoku.LastUpdate - prevTeitoku.LastUpdate).TotalHours;
                         currTeitoku.DeltaSenka = currTeitoku.Senka - prevTeitoku.Senka;
                         currTeitoku.DeltaRankNo = prevTeitoku.RankNo - latestSenkaList[i].RankNo;
-                        currTeitoku.AverageSenkaPerHour = senkaFromExp / (currTeitoku.LastUpdate - prevTeitoku.LastUpdate).TotalHours;
+                        currTeitoku.InheritSenka = prevTeitoku.Senka * 1428.0 / 50000;
                         currTeitoku.LastUpdate = DateTime.UtcNow;
-                        foundNum++;
                     }
                 }
                 Utils.Log(string.Format("server {0} differences has been calculate .", serverPair.Key), "SenkaModule", ConsoleColor.Green);
@@ -581,7 +604,7 @@ namespace Paspy.kcsMonitor.Modules {
                 var exportFile =
                     Path.Combine(m_exportPath, string.Format("{0}_{1}", prefix, serverPair.Key));
                 Directory.CreateDirectory(exportFile);
-                var jst = TimeZoneInfo.ConvertTime(serverPair.Value[0].LastUpdate, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"));
+                var jst = TimeZoneInfo.ConvertTime(serverPair.Value[0].LastUpdate, TimeZoneInfo.FindSystemTimeZoneById(m_isWindows ? Utils.TZConvert("Sapporo") : "Japan"));
 
                 var filename = string.Format(
                     "{0}-{1}-{2}_{3}.json",
@@ -589,15 +612,22 @@ namespace Paspy.kcsMonitor.Modules {
                     jst.Month.ToString("D2"),
                     jst.Hour >= 0 && jst.Hour < 3 ? (jst.Day - 1).ToString("D2") : jst.Day.ToString("D2"),
                     (jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15).ToString("D2"));
-
-                File.WriteAllText(Path.Combine(exportFile, filename), JsonConvert.SerializeObject(serverPair.Value, Formatting.Indented));
+                var localSavePath = Path.Combine(exportFile, filename);
+                var serializedJSON = JsonConvert.SerializeObject(serverPair.Value, Formatting.Indented);
+                File.WriteAllText(localSavePath, serializedJSON);
+                if (m_isWindows) {
+                    var botSavePath =
+                        Path.Combine(@"D:\Paspy\Documents\kcsMonitor\SenkaData\", string.Format("{0}_{1}", prefix, serverPair.Key), filename);
+                    File.WriteAllText(botSavePath, serializedJSON);
+                }
                 Utils.Log(string.Format("{0}'s senka {1} has been saved.", serverPair.Key, filename), "SenkaModule", ConsoleColor.Yellow);
             }
         }
 
         private const string MODULE_PATH = @"data/SenkaModule/";
+        private const string DEFAULT_MEMBER_DB_ZIP = @"RawMemberData/{0}_2017_01.zip"; // change periodically
+        private const string DEFAULT_MEMBER_DB = @"RawMemberData/{0}_2017_01.json"; // change periodically
         private const string DEFAULT_TOKEN_FILE = @"data/SenkaModule/APITokens.xml";
-        private const string DEFAULT_MEMBER_DB = @"ActiveMembers_2017_01.json"; // change periodically
 
         private const string API_RANK_PAGE = "http://{0}/kcsapi/api_req_ranking/mxltvkpyuklh";
         private const string API_GET_MEMBER_RECORD = "http://{0}/kcsapi/api_get_member/record";

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 /// <summary>
-/// Version 1.0.0
+/// Version 1.0.1
 /// </summary>
 namespace Paspy.kcsMonitor.Modules.Data {
 
@@ -40,7 +40,7 @@ namespace Paspy.kcsMonitor.Modules.Data {
         public int MemberId { get; set; }
         public long Experiences { get; set; }
         public string DeckName { get; set; }
-        public List<PracticeShip> DeckShips { get; set; }
+        //public List<PracticeShip> DeckShips { get; set; } // Disabled
         public int ShipSlots { get; set; }
         public int CurrentShips { get; set; }
         public int ItemSlots { get; set; }
@@ -57,6 +57,7 @@ namespace Paspy.kcsMonitor.Modules.Data {
         public int DeltaRankNo { get; set; }
         public int DeltaSenka { get; set; }
         public double AverageSenkaPerHour { get; set; }
+        public double InheritSenka { get; set; }
         #endregion
 
         #region Miscellaneous
