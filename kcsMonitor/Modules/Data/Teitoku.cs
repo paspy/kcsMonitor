@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 /// <summary>
-/// Version 1.0.1
+/// Version 1.1.0
 /// </summary>
 namespace Paspy.kcsMonitor.Modules.Data {
 
@@ -56,6 +56,7 @@ namespace Paspy.kcsMonitor.Modules.Data {
         public double TotalEOSenka { get; set; }
         public int DeltaRankNo { get; set; }
         public int DeltaSenka { get; set; }
+        public long DeltaExp { get; set; }
         public double AverageSenkaPerHour { get; set; }
         public double InheritSenka { get; set; }
         #endregion

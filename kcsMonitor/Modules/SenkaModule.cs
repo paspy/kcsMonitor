@@ -60,6 +60,16 @@ namespace Paspy.kcsMonitor.Modules {
                 ImportTokens();
                 ImportPreviousLocalSenkaData();
                 ImportLatestLocalSenkaData();
+                //var prevList = m_dictPreviousSortedSenkaDB.Values.ToList();
+                //var currList = m_dictLatestSortedSenkaDB.Values.ToList();
+                //for (int i = 0; i < m_dictPreviousSortedSenkaDB.Values.Count; i++) {
+                //    foreach (var pt in prevList[i]) {
+                //        var found = currList[i].Find(ct => ct.MemberId == pt.MemberId);
+                //        if (found == null && pt.RankNo < 500) {
+                //            Debug.WriteLine("No." + pt.RankNo + " " + pt.Nickname + " " + pt.Server);
+                //        }
+                //    }
+                //}
                 GetRemoteLatestSenkaData();
                 MatchingFromPreviousSenkaData();
                 MatchingFromRawMemberList();
@@ -189,15 +199,15 @@ namespace Paspy.kcsMonitor.Modules {
         }
 
         private void ImportPreviousLocalSenkaData() {
-            bool isLastDay = (Utils.GetJstNow().AddDays(1).Day == 1);
+            bool isFirstDay = (Utils.GetJstNow().Day == 1);
             var jst = Utils.GetJstNow();
             var lastDay = DateTime.DaysInMonth(jst.Year, jst.Month);
-            int prevDay = jst.Hour >= 0 && jst.Hour < 3 ? isLastDay ? lastDay : (jst.Day - 1) : jst.Day;
+            int prevDay = jst.Hour >= 0 && jst.Hour < 3 ? isFirstDay ? lastDay : (jst.Day - 1) : jst.Day;
             int prevHour = jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15;
             if (prevHour == 15) prevHour = 3;
             else {
                 prevHour = 15;
-                prevDay = isLastDay ? lastDay : prevDay - 1;
+                prevDay = isFirstDay ? lastDay : prevDay - 1;
             }
             var filename =
                 string.Format("{0}-{1}-{2}_{3}.json", jst.Year.ToString("D4"), jst.Month.ToString("D2"), prevDay.ToString("D2"), prevHour.ToString("D2"));
@@ -542,7 +552,6 @@ namespace Paspy.kcsMonitor.Modules {
                     teitoku.ItemSlots = (int)api_data.api_slotitem[1];
                     teitoku.CurrentItems = (int)api_data.api_slotitem[0];
                     teitoku.Furnitures = (int)api_data.api_furniture;
-                    //teitoku.LastUpdate = DateTime.UtcNow;
                     return teitoku;
                 }
             } catch (Exception e) {
@@ -563,16 +572,24 @@ namespace Paspy.kcsMonitor.Modules {
                     );
                     if (prevTeitoku == null) continue;
                     if (prevTeitoku.Experiences > 0) {
+                        // Assume max EXP Senka per hour is 20
                         var senkaFromExp = (currTeitoku.Experiences - prevTeitoku.Experiences) / 1428.0;
-                        // Set max EXP Senka per hour is 30
-                        var tmpEOSenka = (currTeitoku.Senka - prevTeitoku.Senka - senkaFromExp);
-
-                        currTeitoku.EOSenka = (tmpEOSenka + 30) < 75.0 ? 0.0 : tmpEOSenka;
-                        currTeitoku.TotalEOSenka = prevTeitoku.TotalEOSenka + currTeitoku.EOSenka;
+                        if (currTeitoku.Senka >= prevTeitoku.Senka) { // monthly Senka clear check
+                            var tmpEOSenka = (currTeitoku.Senka - prevTeitoku.Senka - senkaFromExp);
+                            currTeitoku.EOSenka = (tmpEOSenka + 20) < 75.0 ? 0.0 : tmpEOSenka;
+                            currTeitoku.TotalEOSenka = prevTeitoku.TotalEOSenka + currTeitoku.EOSenka;
+                            currTeitoku.DeltaSenka = currTeitoku.Senka - prevTeitoku.Senka;
+                            currTeitoku.InheritSenka = prevTeitoku.Senka * 1428.0 / 50000;
+                        } else {
+                            var tmpEOSenka = (currTeitoku.Senka - senkaFromExp - prevTeitoku.InheritSenka);
+                            currTeitoku.EOSenka = (tmpEOSenka + 20) < 75.0 ? 0.0 : tmpEOSenka;
+                            currTeitoku.TotalEOSenka = currTeitoku.EOSenka;
+                            currTeitoku.DeltaSenka = currTeitoku.Senka - (int)prevTeitoku.InheritSenka;
+                            currTeitoku.InheritSenka = (prevTeitoku.Senka + senkaFromExp) * 1428.0 / 50000; // ???
+                        }
                         currTeitoku.AverageSenkaPerHour = senkaFromExp / (currTeitoku.LastUpdate - prevTeitoku.LastUpdate).TotalHours;
-                        currTeitoku.DeltaSenka = currTeitoku.Senka - prevTeitoku.Senka;
-                        currTeitoku.DeltaRankNo = prevTeitoku.RankNo - latestSenkaList[i].RankNo;
-                        currTeitoku.InheritSenka = prevTeitoku.Senka * 1428.0 / 50000;
+                        currTeitoku.DeltaRankNo = prevTeitoku.RankNo - currTeitoku.RankNo;
+                        currTeitoku.DeltaExp = currTeitoku.Experiences - prevTeitoku.Experiences;
                         currTeitoku.LastUpdate = DateTime.UtcNow;
                     }
                 }
@@ -614,7 +631,11 @@ namespace Paspy.kcsMonitor.Modules {
                     (jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15).ToString("D2"));
                 var localSavePath = Path.Combine(exportFile, filename);
                 var serializedJSON = JsonConvert.SerializeObject(serverPair.Value, Formatting.Indented);
+
+                if (File.Exists(localSavePath))
+                    File.Copy(localSavePath, localSavePath + string.Format("_{0}.bak", DateTime.Now.ToFileTimeUtc()), true);
                 File.WriteAllText(localSavePath, serializedJSON);
+
                 if (m_isWindows) {
                     var botSavePath =
                         Path.Combine(@"D:\Paspy\Documents\kcsMonitor\SenkaData\", string.Format("{0}_{1}", prefix, serverPair.Key), filename);
@@ -626,7 +647,6 @@ namespace Paspy.kcsMonitor.Modules {
 
         private const string MODULE_PATH = @"data/SenkaModule/";
         private const string DEFAULT_MEMBER_DB_ZIP = @"RawMemberData/{0}_2017_01.zip"; // change periodically
-        private const string DEFAULT_MEMBER_DB = @"RawMemberData/{0}_2017_01.json"; // change periodically
         private const string DEFAULT_TOKEN_FILE = @"data/SenkaModule/APITokens.xml";
 
         private const string API_RANK_PAGE = "http://{0}/kcsapi/api_req_ranking/mxltvkpyuklh";

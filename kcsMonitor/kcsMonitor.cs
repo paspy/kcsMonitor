@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Text;
 using System.Collections.Generic;
 using Paspy.kcsMonitor.Modules;
@@ -9,6 +10,12 @@ namespace Paspy.kcsMonitor {
 
         public static void Main(string[] args) {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
+            Directory.CreateDirectory(dataPath);
+            if (File.Exists(dataPath + "/kcsMonitor.log")) {
+                Directory.CreateDirectory(Path.Combine(dataPath,"logbak"));
+                File.Move(dataPath + "/kcsMonitor.log", dataPath + "/logbak/kcsMonitor_" + DateTime.Now.ToFileTimeUtc() + ".log");
+            }
             try {
                 InitCLParser();
                 m_clParser.ParseCommandLine(args);
