@@ -54,7 +54,7 @@ namespace Paspy.kcsMonitor.Modules {
                     } else {
                         var existingSwf = File.ReadAllBytes(fileWithPath);
                         if (!Utils.StreamAreEqualHash(existingSwf, taskResult[filename].ToArray())) {
-                            Utils.Log("File: " + filename + " is different from stored version, achieve and update to latest version.", "SwfModule");
+                            Utils.Log("File: " + filename + " is different from stored version, achieve and update to latest version.", "SwfModule", ConsoleColor.Red, ConsoleColor.Green);
                             var utcDate = DateTime.UtcNow.ToString("yyyyMMddHH");
                             var achievedPath = Path.Combine(m_exportPath, utcDate);
                             Directory.CreateDirectory(achievedPath);
