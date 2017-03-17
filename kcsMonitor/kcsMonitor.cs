@@ -28,7 +28,6 @@ namespace Paspy.kcsMonitor {
             var tokenFilesArg = m_clParser.Arguments.Find(x => x.ShortName == 't') as CommandLineParser.Arguments.ValueArgument<string>;
 
             BaseModule sm = new SenkaModule();
-
             do {
                 if (Console.ReadKey(true).Key == ConsoleKey.R) {
                     if (Console.ReadKey(true).Key == ConsoleKey.R) sm.Restart();

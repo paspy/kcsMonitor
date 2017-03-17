@@ -8,7 +8,8 @@ namespace Paspy.kcsMonitor.Utility {
     public static class KeyGen {
 
         // A set of key frequently update by Kancolle officials - Incorrect key would produce error code 100
-        static readonly int[] Il = { 4294, 9077, 9707, 2139, 5643, 4132653, 1033183, 8560, 7973, 9025, 13, 4164, 3791, 10, 8809, 8357, 1000, 1875979 };
+        static readonly int[] Il =/* { 4294, 9077, 9707, 2139, 5643, 4132653, 1033183, 8560, 7973, 9025, 13, 4164, 3791, 10, 8809, 8357, 1000, 1875979 };*/ // invalid on 2/28 upgrade.
+                                     { 5204, 2565, 9345, 2139, 3690, 4132653, 1033183, 9257, 7934, 9214, 13, 5861, 3791, 10, 8221, 5854, 1000, 1875979};
 
         /// <summary>
         /// Construct a signature string that will verified by Kancolle server (api_ranking, api_port, ...)
@@ -81,7 +82,7 @@ namespace Paspy.kcsMonitor.Utility {
         /// <param name="memberId"></param>
         /// <param name="firstTwo"></param>
         /// <returns></returns>
-        static double Simplified_l_(int memberId, bool firstTwo = false) {
+        public static double Simplified_l_(int memberId, bool firstTwo = false) {
             int magicNum = 0;
             try {
                 var i = Simplified_I1(memberId % 10);
@@ -130,7 +131,7 @@ namespace Paspy.kcsMonitor.Utility {
                     System.Diagnostics.Debug.WriteLine(e.Message);
                     throw;
                 }
-                
+
             }
             public static double m(double param1, double param2) {
                 return param1 - param2;

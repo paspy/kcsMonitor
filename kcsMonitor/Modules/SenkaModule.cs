@@ -60,6 +60,7 @@ namespace Paspy.kcsMonitor.Modules {
                 ImportTokens();
                 ImportPreviousLocalSenkaData();
                 ImportLatestLocalSenkaData();
+
                 //var prevList = m_dictPreviousSortedSenkaDB.Values.ToList();
                 //var currList = m_dictLatestSortedSenkaDB.Values.ToList();
                 //for (int i = 0; i < m_dictPreviousSortedSenkaDB.Values.Count; i++) {
@@ -70,6 +71,7 @@ namespace Paspy.kcsMonitor.Modules {
                 //        }
                 //    }
                 //}
+
                 GetRemoteLatestSenkaData();
                 MatchingFromPreviousSenkaData();
                 MatchingFromRawMemberList();
@@ -201,7 +203,7 @@ namespace Paspy.kcsMonitor.Modules {
         private void ImportPreviousLocalSenkaData() {
             bool isFirstDay = (Utils.GetJstNow().Day == 1);
             var jst = Utils.GetJstNow();
-            var lastDay = DateTime.DaysInMonth(jst.Year, jst.Month);
+            var lastDay = DateTime.DaysInMonth(jst.Year, jst.Month - 1);
             int prevDay = jst.Hour >= 0 && jst.Hour < 3 ? isFirstDay ? lastDay : (jst.Day - 1) : jst.Day;
             int prevHour = jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15;
             if (prevHour == 15) prevHour = 3;
@@ -210,7 +212,7 @@ namespace Paspy.kcsMonitor.Modules {
                 prevDay = isFirstDay ? lastDay : prevDay - 1;
             }
             var filename =
-                string.Format("{0}-{1}-{2}_{3}.json", jst.Year.ToString("D4"), jst.Month.ToString("D2"), prevDay.ToString("D2"), prevHour.ToString("D2"));
+                string.Format("{0}-{1}-{2}_{3}.json", jst.Year.ToString("D4"), (isFirstDay ? prevHour == 3 ? jst.Month : jst.Month - 1 : jst.Month).ToString("D2"), prevDay.ToString("D2"), prevHour.ToString("D2"));
             string[] subServerDirs = Directory.GetDirectories(m_exportPath);
             foreach (var serverExt in subServerDirs) {
                 var filenameWithPath = Path.Combine(serverExt, filename);
@@ -570,7 +572,13 @@ namespace Paspy.kcsMonitor.Modules {
                     var prevTeitoku = prevSenkaList.Find(
                         x => currTeitoku.MemberId == x.MemberId && currTeitoku.MemberId > 0
                     );
-                    if (prevTeitoku == null) continue;
+                    if (prevTeitoku == null) {
+                        if ((Utils.GetJstNow().Day == 1)) {
+                            currTeitoku.DeltaSenka = currTeitoku.Senka;
+                        }
+                        continue;
+                    }
+
                     if (prevTeitoku.Experiences > 0) {
                         // Assume max EXP Senka per hour is 20
                         var senkaFromExp = (currTeitoku.Experiences - prevTeitoku.Experiences) / 1428.0;
@@ -579,13 +587,13 @@ namespace Paspy.kcsMonitor.Modules {
                             currTeitoku.EOSenka = (tmpEOSenka + 20) < 75.0 ? 0.0 : tmpEOSenka;
                             currTeitoku.TotalEOSenka = prevTeitoku.TotalEOSenka + currTeitoku.EOSenka;
                             currTeitoku.DeltaSenka = currTeitoku.Senka - prevTeitoku.Senka;
-                            currTeitoku.InheritSenka = prevTeitoku.Senka * 1428.0 / 50000;
-                        } else {
-                            var tmpEOSenka = (currTeitoku.Senka - senkaFromExp - prevTeitoku.InheritSenka);
-                            currTeitoku.EOSenka = (tmpEOSenka + 20) < 75.0 ? 0.0 : tmpEOSenka;
-                            currTeitoku.TotalEOSenka = currTeitoku.EOSenka;
-                            currTeitoku.DeltaSenka = currTeitoku.Senka - (int)prevTeitoku.InheritSenka;
-                            currTeitoku.InheritSenka = (prevTeitoku.Senka + senkaFromExp) * 1428.0 / 50000; // ???
+                            //currTeitoku.InheritSenka = prevTeitoku.Senka * 1428.0 / 50000;
+
+                        } else { // first day and first Senka data
+                            //var tmpEOSenka = (currTeitoku.Senka - senkaFromExp - prevTeitoku.InheritSenka);
+                            //currTeitoku.EOSenka = tmpEOSenka < 75 ? 0 : tmpEOSenka;
+                            //currTeitoku.TotalEOSenka = currTeitoku.EOSenka;
+                            //currTeitoku.DeltaSenka = currTeitoku.Senka - (int)prevTeitoku.InheritSenka;
                         }
                         currTeitoku.AverageSenkaPerHour = senkaFromExp / (currTeitoku.LastUpdate - prevTeitoku.LastUpdate).TotalHours;
                         currTeitoku.DeltaRankNo = prevTeitoku.RankNo - currTeitoku.RankNo;
@@ -597,6 +605,11 @@ namespace Paspy.kcsMonitor.Modules {
             }
         }
 
+        /// <summary>
+        /// Has bug
+        /// </summary>
+        /// <param name="forwardSecond"></param>
+        /// <returns></returns>
         private int GetNextCycleTimeLeft(int forwardSecond = 10) {
             var currJST = Utils.GetJstNow().TimeOfDay;
             int hour = 0;
