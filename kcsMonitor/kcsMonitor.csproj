@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyTitle>kcsMonitor</AssemblyTitle>
+    <TargetFramework>netcoreapp1.0</TargetFramework>
+    <PlatformTarget>anycpu</PlatformTarget>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <AssemblyName>kcsMonitor</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <PackageId>kcsMonitor</PackageId>
+    <RuntimeFrameworkVersion>1.1.1</RuntimeFrameworkVersion>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineArgumentsParser" Version="3.0.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="MySql.Data.Core" Version="7.0.4-IR-191" />
+    <PackageReference Include="System.Diagnostics.Process" Version="4.3.0" />
+    <PackageReference Include="System.Xml.XDocument" Version="4.3.0" />
+    <PackageReference Include="EnterpriseLibrary.TransientFaultHandling.Core" Version="1.0.0" />
+  </ItemGroup>
+
+</Project>

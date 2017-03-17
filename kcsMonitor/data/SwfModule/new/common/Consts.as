@@ -390,9 +390,9 @@ package common
       
       public static const SLOTITEM_CANNOT_EQUIP_TYPE3:Array = [47,48];
       
-      private static const _PRESET_MAX_NUM:int = 9;
+      private static const _PRESET_MAX_NUM:int = 10;
       
-      private static var _USE_COMBINE_FLEET:Boolean = true;
+      private static var _USE_COMBINE_FLEET:Boolean = false;
       
       public static const EXTRA_SLOT_LEVEL:int = 30;
        
@@ -433,7 +433,7 @@ package common
       
       public static function get PRESET_MAX_NUM() : int
       {
-         return 9;
+         return 10;
       }
       
       public static function get USE_COMBINE_FLEET() : Boolean

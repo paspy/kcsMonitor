@@ -19,6 +19,11 @@ package common.resources
          var _loc1_:String = SettingFacade.URLROOT_SLOTITEM;
          _loc1_ = _loc1_ + (_type + "/");
          _loc1_ = _loc1_ + (MathUtil.digit3(_mstId) + ".png");
+         var _loc2_:String = DataFacade.getMasterSlotItemData().getVersion(_mstId);
+         if(_loc2_ != null && _loc2_ != "" && _loc2_ != "1")
+         {
+            _loc1_ = _loc1_ + ("?version=" + _loc2_);
+         }
          return _loc1_;
       }
       

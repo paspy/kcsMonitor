@@ -5,9 +5,9 @@ package core.consts
       
       public static const OPEN_MAPS:Array = [333];
       
-      public static const SAIHENSEI:Array = [626,629,630];
+      public static const SAIHENSEI:Array = [626,629,630,659,660];
       
-      public static const SAIHENSEI_TOUJOIN:Array = [626];
+      public static const SAIHENSEI_TOUJOIN:Array = [626,659,660];
       
       public static const MODELCHANGE_EXTRA:Object = {
          "637":{
@@ -294,6 +294,40 @@ package core.consts
                "id":"s062",
                "eff_type":2
             },null],
+            "update":["slotitem"]
+         },
+         "657":{
+            "item_from":"-1",
+            "item_to":"62u",
+            "message1":"春の準備：桃の節句の準備中…",
+            "items1":[{
+               "id":"646_1",
+               "eff_type":1
+            },{
+               "id":"642_2",
+               "eff_type":2
+            }],
+            "items2":[null,{
+               "id":"013_2",
+               "eff_type":2
+            }],
+            "update":["slotitem"]
+         },
+         "658":{
+            "item_from":"-1",
+            "item_to":"213",
+            "message1":"「新型潜水艦兵装」を開発中…",
+            "items1":[{
+               "id":"u003",
+               "eff_type":1
+            },{
+               "id":"015_3",
+               "eff_type":2
+            }],
+            "items2":[null,{
+               "id":"046_3",
+               "eff_type":2
+            }],
             "update":["slotitem"]
          }
       };

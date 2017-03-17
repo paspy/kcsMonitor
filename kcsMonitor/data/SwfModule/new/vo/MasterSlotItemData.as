@@ -204,6 +204,12 @@ package vo
          return Util.getInt(_loc2_,"api_distance",0);
       }
       
+      public function getVersion(param1:int) : String
+      {
+         var _loc2_:Object = _getItemData(param1);
+         return Util.getString(_loc2_,"api_version","");
+      }
+      
       public function getEquipTypeIDs() : Array
       {
          var _loc1_:Array = [];

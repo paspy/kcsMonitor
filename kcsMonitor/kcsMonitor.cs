@@ -10,7 +10,7 @@ namespace Paspy.kcsMonitor {
         public static void Main(string[] args) {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            var sm = new SwfModule(10000);
+            var sm = new SwfModule();
             do {
                 if (Console.ReadKey(true).Key == ConsoleKey.R) sm.Restart();
                 if (Console.ReadKey(true).Key == ConsoleKey.T) sm.ReportTime();
