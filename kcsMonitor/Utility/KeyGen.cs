@@ -9,7 +9,8 @@ namespace Paspy.kcsMonitor.Utility {
 
         // A set of key frequently update by Kancolle officials - Incorrect key would produce error code 100
         static readonly int[] Il =/* { 4294, 9077, 9707, 2139, 5643, 4132653, 1033183, 8560, 7973, 9025, 13, 4164, 3791, 10, 8809, 8357, 1000, 1875979 };*/ // invalid on 2/28 upgrade.
-                                     { 5204, 2565, 9345, 2139, 3690, 4132653, 1033183, 9257, 7934, 9214, 13, 5861, 3791, 10, 8221, 5854, 1000, 1875979};
+                                  /* { 5204, 2565, 9345, 2139, 3690, 4132653, 1033183, 9257, 7934, 9214, 13, 5861, 3791, 10, 8221, 5854, 1000, 1875979};*/  // invalid on 3/17 upgrade.
+                                     { 8322, 6324, 4534, 2139, 5206, 4132653, 1033183, 3041, 7022, 8867, 13, 9558, 3791, 10, 8341, 9226, 1000, 1875979};
 
         /// <summary>
         /// Construct a signature string that will verified by Kancolle server (api_ranking, api_port, ...)
