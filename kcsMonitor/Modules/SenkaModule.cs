@@ -213,7 +213,7 @@ namespace Paspy.kcsMonitor.Modules {
             }
             var filename =
                 string.Format("{0}-{1}-{2}_{3}.json", jst.Year.ToString("D4"), (isFirstDay ? prevHour == 3 ? jst.Month : jst.Month - 1 : jst.Month).ToString("D2"), prevDay.ToString("D2"), prevHour.ToString("D2"));
-            //filename = "2017-04-01_03.json";
+            filename = "2017-05-01_03.json";
 
             string[] subServerDirs = Directory.GetDirectories(m_exportPath);
             foreach (var serverExt in subServerDirs) {
@@ -646,7 +646,7 @@ namespace Paspy.kcsMonitor.Modules {
                     jst.Hour >= 0 && jst.Hour < 3 ? (jst.Day - 1).ToString("D2") : jst.Day.ToString("D2"),
                     (jst.Hour >= 3 && jst.Hour < 15 ? 3 : 15).ToString("D2"));
 
-                //filename = "2017-04-01_15.json";
+                filename = "2017-05-01_15.json";
 
                 var localSavePath = Path.Combine(exportFile, filename);
                 var serializedJSON = JsonConvert.SerializeObject(serverPair.Value, Formatting.Indented);
