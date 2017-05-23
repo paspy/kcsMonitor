@@ -8,10 +8,7 @@ namespace Paspy.kcsMonitor.Utility {
     public static class KeyGen {
 
         // A set of key frequently update by Kancolle officials - Incorrect key would produce error code 100
-        static readonly int[] Il =/* { 4294, 9077, 9707, 2139, 5643, 4132653, 1033183, 8560, 7973, 9025, 13, 4164, 3791, 10, 8809, 8357, 1000, 1875979 };*/ // invalid on 2/28 upgrade.
-                                  /* { 5204, 2565, 9345, 2139, 3690, 4132653, 1033183, 9257, 7934, 9214, 13, 5861, 3791, 10, 8221, 5854, 1000, 1875979};*/  // invalid on 3/17 upgrade.
-                                  /* { 8322, 6324, 4534, 2139, 5206, 4132653, 1033183, 3041, 7022, 8867, 13, 9558, 3791, 10, 8341, 9226, 1000, 1875979};*/  // invalid on 4/5 update
-                                     { 7198, 2603, 4038, 2139, 7536, 4132653, 1033183, 7920, 3396, 5437, 13, 9517, 3791, 10, 7838, 3720, 1000, 1875979};    // 
+        static readonly int[] Il = { 7252,6184,8285,2139,6942,4132653,1033183,5060,9441,6734,13,7180,3791,10,2358,6127,1000,1875979};
 
         /// <summary>
         /// Construct a signature string that will verified by Kancolle server (api_ranking, api_port, ...)
@@ -40,7 +37,7 @@ namespace Paspy.kcsMonitor.Utility {
         static readonly int[] Magic_M = { 10784, 3054, 3009, 6914, 6422, 6585, 5632, 6421, 7548, 6472, 6765, 7522, 8439 };
 
         /// <summary>
-        /// A custom decoder function for De-obfuscated ranking rate and medal number
+        /// A custom decoder for De-obfuscated ranking rate and medal number
         /// Source: 
         /// http://ch.nicovideo.jp/arisu_yaya/blomaga/ar941858
         /// https://github.com/yukixz/kctools/blob/master/rank.py
